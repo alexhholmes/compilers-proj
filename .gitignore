@@ -1,0 +1,6 @@
+out/
+lex.yy.c
+*.tab.c
+*.tab.h
+parser
+*.output
