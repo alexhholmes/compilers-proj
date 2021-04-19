@@ -25,7 +25,6 @@ STRING \"(\\.|[^"\\])*\"
 "float"                 { return(FLOAT); }
 "return"                { return(RETURN); }
 "void"                  { return(VOID); }
-"main"                  { return(MAIN); }
 
 "("                     { return(LTPAR); }
 ")"                     { return(RTPAR); }
@@ -53,8 +52,11 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-{IDENTIFIER}            { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF, num_line);
+{IDENTIFIER}            { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF);
                           return(IDENTIFIER); }
+
+"main"                  { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF);
+                          return(MAIN); }
 
 {CHAR}                  { yylval.char_value = yytext[1];
                           return(CHAR_CONST); }
