@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+
+extern int num_line;
 
 /*
  * Appends a new symbol to the front of the symbol table.
@@ -25,7 +28,7 @@ void append_sym(char *name, int len, int type) {
 
             #ifdef DEBUG
             new_sym->count = 0;
-            new_sym->lines = (RefList *)malloc(sizeof(RefList));
+            new_sym->lines = (RefList *) malloc(sizeof(RefList));
             new_sym->lines->line_num = num_line;
             new_sym->lines->next = NULL;
             #endif
@@ -83,7 +86,7 @@ Symbol *lookup_sym_scoped(char *name, scope_t scope) {
 /*
  * Returns true if symbol has been declared in the current scope.
  */
-bool *is_sym_declared_scoped(char *name, scope_t scope) {
+bool is_sym_declared_scoped(char *name, scope_t scope) {
     Symbol *sym = sym_table;
     while (sym != NULL) {
         if (sym->scope == scope && sym->declared == true && strcmp(sym->name, name) == 0) {
@@ -117,10 +120,10 @@ void hide_scope() {
 void print_symtab() {
     Symbol *sym = sym_table;
     while (sym != NULL) {
-        printf("%s\t\t%s\t%d\t");
+        printf("%s\t\t%d\t%d\t", sym->name, sym->token_type, sym->scope);
         RefList *lines = sym->lines;
         while (lines != NULL) {
-            printf("%d\t")
+            printf("%d\t", lines->line_num);
             lines = lines->next;
         }
         printf("\n");

@@ -1,7 +1,9 @@
 %{
+#include "tinylex.tab.h"
+#include "symtab.h"
+
 #include <stdlib.h>
 #include <stdio.h>
-#include "tinylex.tab.h"
 
 extern int num_line;
 extern int yylex();
@@ -71,7 +73,7 @@ extern void yyerror(char *s);
     float float_value;
     char *string_value;
 
-    Symbol *symbolItem;
+    struct Symbol *symbol_item;
 }
 
 %% 
@@ -104,6 +106,7 @@ func_arglist: PTR IDENTIFIER
 
 func_call: IDENTIFIER LTPAR x;
 
+/* TODO */
 x: func_arglist RTPAR | RTPAR;
 
 unary_exp: primary_exp 
@@ -181,7 +184,7 @@ func_paramlist: func_param
     | func_param COMMA func_param
     ;
 
-var_def: type IDENTIFIER ASSIGNMENT constant SEMICOLON
+var_def: type { declared = 1; } IDENTIFIER { declared = 0; } ASSIGNMENT constant SEMICOLON
     ;
 
 var_deflist: /* epsilon */
@@ -195,8 +198,8 @@ func_stlist: ret_st
 func_body: var_deflist func_stlist
     ;
 
-func_def: return_type IDENTIFIER LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
-    | return_type IDENTIFIER LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+func_def: return_type { declared = 1; } IDENTIFIER { declared = 0; } LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+    | return_type { declared = 1; } IDENTIFIER { declared = 0; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     ;
 
 /* programs */
@@ -205,7 +208,7 @@ func_deflist: /* epsilon */
     | func_deflist func_def 
     ;
 
-main: INT MAIN LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+main: INT { declared = 1; } MAIN { declared = 0; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     ;
 
 %%

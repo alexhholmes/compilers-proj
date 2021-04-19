@@ -1,6 +1,10 @@
 %{
 #include "tinylex.tab.h"
+#include "symtab.h"
+
 #include <math.h>
+
+extern int num_line;
 
 int num_line = 1;
 %}
@@ -52,11 +56,13 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-{IDENTIFIER}            { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF);
-                          return(IDENTIFIER); }
-
-"main"                  { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF);
+"main"                  { append_sym(yytext, strlen(yytext), UNDEF);
+                          yylval.symbol_item = lookup_sym(yytext);
                           return(MAIN); }
+
+{IDENTIFIER}            { append_sym(yytext, strlen(yytext), UNDEF);
+                          yylval.symbol_item = lookup_sym(yytext);
+                          return(IDENTIFIER); }
 
 {CHAR}                  { yylval.char_value = yytext[1];
                           return(CHAR_CONST); }

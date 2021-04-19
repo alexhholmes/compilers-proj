@@ -14,7 +14,7 @@ int main(void)
     int b = 0;
     int c = 0;
 
-    printf("Hello world! %d %d", a, );
+    printf("Hello world! %d %d", a, b);
     
     return 0; 
 }
