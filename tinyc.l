@@ -53,19 +53,19 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-{IDENTIFIER}            { yylval.charArray = strdup(yytext);
+{IDENTIFIER}            { yylval.symbol_item = append_sym(yytext, strlen(yytext), UNDEF, num_line);
                           return(IDENTIFIER); }
 
-{CHAR}                  { yylval.charValue = yytext[1];
+{CHAR}                  { yylval.char_value = yytext[1];
                           return(CHAR_CONST); }
 
-{INTEGER}               { yylval.intValue = atoi(yytext);                               
+{INTEGER}               { yylval.int_value = atoi(yytext);                               
                           return(INT_CONST); }
 
-{FLOAT}                 { yylval.floatValue = atof(yytext);                                
+{FLOAT}                 { yylval.float_value = atof(yytext);                                
                           return(FLOAT_CONST); }
 
-{STRING}                { yylval.stringValue = yytext;
+{STRING}                { yylval.string_value = yytext;
                           return (STRING_CONST); }
 
 [ \t]                   /* skip whitespace */
