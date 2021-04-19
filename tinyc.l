@@ -4,8 +4,6 @@
 
 #include <math.h>
 
-extern int num_line;
-
 int num_line = 1;
 %}
 

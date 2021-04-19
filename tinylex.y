@@ -4,8 +4,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 extern int num_line;
+extern bool declared;
 extern int yylex();
 extern void yyerror(char *s);
 %}
@@ -51,7 +53,6 @@ extern void yyerror(char *s);
 %token PTR     /* & */
 
 %token IDENTIFIER
-%token SPECIALCASEIDENTIFIER
 %token CHAR_CONST
 %token INT_CONST
 %token FLOAT_CONST
@@ -177,14 +178,14 @@ return_type: VOID
     | type 
     ;
 
-func_param: type IDENTIFIER
+func_param: { declared = true; } type IDENTIFIER { declared = false; }
     ;
 
 func_paramlist: func_param
     | func_param COMMA func_param
     ;
 
-var_def: type { declared = 1; } IDENTIFIER { declared = 0; } ASSIGNMENT constant SEMICOLON
+var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT constant SEMICOLON
     ;
 
 var_deflist: /* epsilon */
@@ -198,8 +199,14 @@ func_stlist: ret_st
 func_body: var_deflist func_stlist
     ;
 
-func_def: return_type { declared = 1; } IDENTIFIER { declared = 0; } LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
-    | return_type { declared = 1; } IDENTIFIER { declared = 0; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+func_head: return_type IDENTIFIER { declared = false; }
+    ;
+
+func_tail: LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+    | LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+    ;
+
+func_def: func_head func_tail 
     ;
 
 /* programs */
@@ -208,7 +215,7 @@ func_deflist: /* epsilon */
     | func_deflist func_def 
     ;
 
-main: INT { declared = 1; } MAIN { declared = 0; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+main: INT MAIN LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     ;
 
 %%

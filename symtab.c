@@ -8,11 +8,15 @@
 
 extern int num_line;
 
+bool declared = false;
+static scope_t curr_scope = 0;
+
 /*
  * Appends a new symbol to the front of the symbol table.
  * Checks if variable has already been declared in the scope.
  */
 void append_sym(char *name, int len, int type) {
+    printf("%s\t%d\t%d\n", name, declared, curr_scope);
     if (declared) {
         // Declared symbol must check if it's already been declared
         // in the current scope.
@@ -27,6 +31,8 @@ void append_sym(char *name, int len, int type) {
             new_sym->next = sym_table;
 
             #ifdef DEBUG
+            printf("New symbol: %s, ln %d\n", name, num_line);
+
             new_sym->count = 0;
             new_sym->lines = (RefList *) malloc(sizeof(RefList));
             new_sym->lines->line_num = num_line;
@@ -92,6 +98,7 @@ bool is_sym_declared_scoped(char *name, scope_t scope) {
         if (sym->scope == scope && sym->declared == true && strcmp(sym->name, name) == 0) {
             return true;
         }
+        sym = sym->next;
     }
     return false;
 }

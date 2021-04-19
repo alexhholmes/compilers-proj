@@ -22,10 +22,8 @@
 typedef unsigned int scope_t;
 
 static struct Symbol *sym_table = NULL;
-static scope_t curr_scope = 0;
 // Parser sets declared in rule, lexer calls symtab append,
 // symtab append checks if able to add w/ declared bool.
-static bool declared = false;
 
 typedef struct Param {
     int param_type;
