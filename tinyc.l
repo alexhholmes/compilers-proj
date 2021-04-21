@@ -54,10 +54,6 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-"main"                  { append_sym(yytext, strlen(yytext), UNDEF);
-                          yylval.symbol_item = lookup_sym(yytext);
-                          return(MAIN); }
-
 {IDENTIFIER}            { append_sym(yytext, strlen(yytext), UNDEF);
                           yylval.symbol_item = lookup_sym(yytext);
                           return(IDENTIFIER); }

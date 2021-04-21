@@ -21,7 +21,6 @@ extern void yyerror(char *s);
 %token FLOAT
 %token RETURN
 %token VOID
-%token MAIN
 
 /* Pairs of tokens */
 %token LTPAR     /* ( */
@@ -79,7 +78,7 @@ extern void yyerror(char *s);
 
 %% 
 
-program: func_deflist main func_deflist
+program: func_deflist
     ;
 
 primary_exp: constant
@@ -178,13 +177,6 @@ return_type: VOID
     | type 
     ;
 
-func_param: { declared = true; } type IDENTIFIER { declared = false; }
-    ;
-
-func_paramlist: func_param
-    | func_param COMMA func_param
-    ;
-
 var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT constant SEMICOLON
     ;
 
@@ -199,23 +191,24 @@ func_stlist: ret_st
 func_body: var_deflist func_stlist
     ;
 
-func_head: return_type IDENTIFIER { declared = false; }
+func_param: { declared = true; } type IDENTIFIER { declared = false; }
     ;
 
-func_tail: LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+func_paramlist: func_param
+    | func_param COMMA func_param
+    ;
+
+func_def_tail: LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
     | LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     ;
 
-func_def: func_head func_tail 
+func_def: return_type { declared = true; } IDENTIFIER { declared = false; } func_def_tail
     ;
 
 /* programs */
 
 func_deflist: /* epsilon */
     | func_deflist func_def 
-    ;
-
-main: INT MAIN LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     ;
 
 %%
