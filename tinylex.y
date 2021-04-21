@@ -104,10 +104,8 @@ func_arglist: PTR IDENTIFIER
     | PTR IDENTIFIER COMMA func_arglist
     ;
 
-func_call: IDENTIFIER LTPAR x;
-
-/* TODO */
-x: func_arglist RTPAR | RTPAR;
+func_call: IDENTIFIER LTPAR func_arglist RTPAR
+    | RTPAR;
 
 unary_exp: primary_exp 
     | PLUS unary_exp
@@ -162,13 +160,16 @@ block_st: LTBRACE st_list RTBRACE
 empty_st: SEMICOLON
     ;
 
+func_call_st: func_call SEMICOLON
+    ;
+
 st: assign_st
     | if_st
     | while_st
     | ret_st
     | block_st
     | empty_st
-    | func_call SEMICOLON
+    | func_call_st
     ;
 
 /* functions */
@@ -184,11 +185,11 @@ var_deflist: /* epsilon */
     | var_def var_deflist
     ;
 
-func_stlist: ret_st
-    | st func_stlist
+func_st_list: ret_st
+    | st func_st_list
     ;
 
-func_body: var_deflist func_stlist
+func_body: var_deflist func_st_list
     ;
 
 func_param: { declared = true; } type IDENTIFIER { declared = false; }

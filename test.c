@@ -1,7 +1,8 @@
 int do_addition(int a, int b)
 {
-    if (a == 0)
+    if (a == 0) {
         return b;
+    }
     if (b == 0)
         return a;
 

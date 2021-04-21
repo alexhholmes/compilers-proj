@@ -54,7 +54,7 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-{IDENTIFIER}            { append_sym(yytext, strlen(yytext), UNDEF);
+{IDENTIFIER}            { append_sym(yytext, UNDEF);
                           yylval.symbol_item = lookup_sym(yytext);
                           return(IDENTIFIER); }
 

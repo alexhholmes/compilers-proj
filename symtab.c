@@ -9,24 +9,19 @@
 extern int num_line;
 
 bool declared = false;
-static scope_t curr_scope = 0;
 
 /*
  * Appends a new symbol to the front of the symbol table.
  * Checks if variable has already been declared in the scope.
  */
-void append_sym(char *name, int len, int type) {
-    printf("%s\t%d\t%d\n", name, declared, curr_scope);
+void append_sym(char *name, int type) {
     if (declared) {
         // Declared symbol must check if it's already been declared
         // in the current scope.
         // TODO Have this be done by semantic analyzer so error is handled there?
-        if (!is_sym_declared_scoped(name, curr_scope)) {
+        if (!lookup_sym(name)) {
             Symbol *new_sym = (Symbol *) malloc(sizeof(Symbol));
             new_sym->name = name;
-            new_sym->name_size = len;
-            new_sym->scope = curr_scope;
-            new_sym->declared = declared;
             new_sym->token_type = type;
             new_sym->next = sym_table;
 
@@ -74,52 +69,6 @@ Symbol *lookup_sym(char *name) {
     return NULL;
 }
 
-/*
- * Returns a reference to the symbol of the given name and scope,
- * NULL if symbol does not exist.
- */
-Symbol *lookup_sym_scoped(char *name, scope_t scope) {
-    Symbol *sym = sym_table;
-    while (sym != NULL) {
-        if (sym->scope == scope && strcmp(sym->name, name) == 0) {
-            return sym;
-        }
-        sym = sym->next;
-    }
-    return NULL;
-}
-
-/*
- * Returns true if symbol has been declared in the current scope.
- */
-bool is_sym_declared_scoped(char *name, scope_t scope) {
-    Symbol *sym = sym_table;
-    while (sym != NULL) {
-        if (sym->scope == scope && sym->declared == true && strcmp(sym->name, name) == 0) {
-            return true;
-        }
-        sym = sym->next;
-    }
-    return false;
-}
-
-/*
- * Increments the scope by one.
- */
-void inc_scope() {
-    curr_scope += 1;
-}
-
-/*
- * Removes all elements of the current scope from the symbol table.
- */
-void hide_scope() {
-    while (sym_table != NULL && sym_table->scope == curr_scope) {
-        sym_table = sym_table->next;
-    }
-    curr_scope -= 1;
-}
-
 #ifdef DEBUG
 /*
  * Prints the symbol table with indentation representing scope.
@@ -127,7 +76,7 @@ void hide_scope() {
 void print_symtab() {
     Symbol *sym = sym_table;
     while (sym != NULL) {
-        printf("%s\t\t%d\t%d\t", sym->name, sym->token_type, sym->scope);
+        printf("%s\t\t%d\t", sym->name, sym->token_type);
         RefList *lines = sym->lines;
         while (lines != NULL) {
             printf("%d\t", lines->line_num);
