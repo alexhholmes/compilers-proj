@@ -87,3 +87,13 @@ void print_symtab() {
     }
 }
 #endif
+
+Param def_param(int param_type, char *param_name, int passing) {
+    Param param;
+
+    param.param_name = strdup(param_name);
+    param.param_type = param_type;
+    param.passing = passing;
+    
+    return param;
+}

@@ -1,6 +1,7 @@
 %{
 #include "tinylex.tab.h"
 #include "symtab.h"
+#include "ast.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,35 +14,35 @@ extern void yyerror(char *s);
 %}
 
 /* Keywords */   
-%token IF 
-%token ELSE
-%token WHILE   
-%token CHAR
-%token INT
-%token FLOAT
-%token RETURN
-%token VOID
+%token <val> IF 
+%token <val> ELSE
+%token <val> WHILE   
+%token <val> CHAR
+%token <val> INT
+%token <val> FLOAT
+%token <val> RETURN
+%token <val> VOID
 
 /* Pairs of tokens */
-%token LTPAR     /* ( */
-%token RTPAR     /* ) */
-%token LTBRACE   /* { */
-%token RTBRACE   /* } */    
+%token <val> LTPAR     /* ( */
+%token <val> RTPAR     /* ) */
+%token <val> LTBRACE   /* { */
+%token <val> RTBRACE   /* } */    
 
 /* Basic separators */
-%token SEMICOLON
-%token COMMA
+%token <val> SEMICOLON
+%token <val> COMMA
 
 /* Math operators */
-%token PLUS
-%token MINUS
-%token MULTIPLY
-%token DIVIDE
+%token <val> PLUS
+%token <val> MINUS
+%token <val> MULTIPLY
+%token <val> DIVIDE
 
 /* Equality and difference */
-%token ASSIGNMENT  /* = */
-%token EQUAL       /* == */
-%token NOT_EQUAL   /* != */
+%token <val> ASSIGNMENT  /* = */
+%token <val> EQUAL       /* == */
+%token <val> NOT_EQUAL   /* != */
 
 /* Logical operators */
 %token GT      /* > */
@@ -51,11 +52,11 @@ extern void yyerror(char *s);
 
 %token PTR     /* & */
 
-%token IDENTIFIER
-%token CHAR_CONST
-%token INT_CONST
-%token FLOAT_CONST
-%token STRING_CONST
+%token <symbol_item> IDENTIFIER
+%token <val> CHAR_CONST
+%token <val> INT_CONST
+%token <val> FLOAT_CONST
+%token <val> STRING_CONST
 
 %left ASSIGNMENT
 %left EQUAL NOT_EQUAL
@@ -67,18 +68,61 @@ extern void yyerror(char *s);
 %nonassoc NO_ELSE
 %nonassoc ELSE
 
-%union {
-    int int_value;
-    char char_value;
-    float float_value;
-    char *string_value;
+/* Non-terminal definitions */
+%type <node> program
+%type <node> func_deflist
+%type <node> func_def
+%type <node> func_body
+%type <node> func_st_list
+%type <node> ret_st
+%type <node> st
 
+/*
+%type <node> primary_exp
+%type <node> constant
+%type <data_type> type
+%type <node> func_arglist
+%type <node> func_call
+%type <node> unary_exp
+%type <node> mult_exp
+%type <node> add_exp
+%type <node> comp_exp
+%type <node> exp
+%type <node> assign_st
+%type <node> if_st
+%type <node> while_st
+%type <node> ret_st
+%type <node> st_list
+%type <node> block_st
+%type <node> empty_st
+%type <node> func_call_st
+%type <node> st
+%type <node> return_type
+%type <node> var_def
+%type <node> var_deflist
+%type <node> func_st_list
+%type <node> func_body
+%type <param> func_param
+%type <node> func_paramlist
+%type <node> func_def_tail
+*/
+
+%union {
+    Value value;
     struct Symbol *symbol_item;
+    AST_Node *node;
+
+    // For declarations
+    int data_type;
+    int const_type;
+
+    // For parameters
+    Param param;
 }
 
 %% 
 
-program: func_deflist
+program: func_deflist { ast_traversal($1); }
     ;
 
 primary_exp: constant
@@ -190,26 +234,52 @@ func_st_list: ret_st
     ;
 
 func_body: var_deflist func_st_list
+    {
+        $$ = new_ast_node(AST_NODE, $1, $2);
+    }
     ;
 
-func_param: { declared = true; } type IDENTIFIER { declared = false; }
+func_param: { declared = true; } type IDENTIFIER
+    { 
+        declared = false;
+        $$ = def_param($2, $3->name, 0);
+    }
     ;
 
 func_paramlist: func_param
-    | func_param COMMA func_param
+    { 
+        $$ = new_ast_function_declaration_params(NULL, 0, $1);
+    }
+    | func_paramlist COMMA func_param
+    {
+        AST_Function_declaration_Params *temp = (AST_Function_declaration_Params*);
+        $$ = new_ast_function_declaration_params(temp->parameters, temp->num_params, $3);
+    }
     ;
 
-func_def_tail: LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
-    | LTPAR VOID RTPAR LTBRACE func_body RTBRACE
-    ;
-
-func_def: return_type { declared = true; } IDENTIFIER { declared = false; } func_def_tail
+func_def: return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+    {
+        $$ = new_ast_function_declaration($1, $3, $6, $9);
+    }
+    | return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+    {
+        $$ = new_ast_function_declaration($1, $3, NULL, $6, %9);
+    }
     ;
 
 /* programs */
 
-func_deflist: /* epsilon */
-    | func_deflist func_def 
+func_deflist: func_deflist func_def 
+    {
+        // Pass old AST_Function_Declarations to new_ast_function_declarations
+        // to reallocate a larger declarations array.
+        AST_Function_Declarations *temp = (AST_Function_Declarations*) $1;
+        $$ = new_ast_function_declarations(temp->func_declarations, temp->func_declaration_count, $2);
+    }
+    | func_def
+    {
+        $$ = new_ast_function_declarations(NULL, 0, $1);
+    }
     ;
 
 %%

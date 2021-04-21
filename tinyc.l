@@ -58,16 +58,16 @@ STRING \"(\\.|[^"\\])*\"
                           yylval.symbol_item = lookup_sym(yytext);
                           return(IDENTIFIER); }
 
-{CHAR}                  { yylval.char_value = yytext[1];
+{CHAR}                  { yylval.value.char_value = yytext[1];
                           return(CHAR_CONST); }
 
-{INTEGER}               { yylval.int_value = atoi(yytext);                               
+{INTEGER}               { yylval.value.int_value = atoi(yytext);                               
                           return(INT_CONST); }
 
-{FLOAT}                 { yylval.float_value = atof(yytext);                                
+{FLOAT}                 { yylval.value.float_value = atof(yytext);                                
                           return(FLOAT_CONST); }
 
-{STRING}                { yylval.string_value = yytext;
+{STRING}                { yylval.value.string_value = yytext;
                           return (STRING_CONST); }
 
 [ \t]                   /* skip whitespace */

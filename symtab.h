@@ -1,5 +1,5 @@
-#ifndef symtab
-#define symtab
+#ifndef _symtab_h
+#define _symtab_h
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -66,6 +66,10 @@ typedef struct Symbol {
 
 void append_sym(char *name, int type);
 Symbol *lookup_sym(char *name);
+Param def_param(int param_type, char *param_name, int passing);
+
+#ifdef DEBUG
 void print_symtab();
+#endif
 
 #endif
