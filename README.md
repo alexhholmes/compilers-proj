@@ -5,4 +5,4 @@
 `make all`
 
 ## Running
-`./parser < test.c
+`./parser < test.c`
