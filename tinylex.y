@@ -71,19 +71,34 @@ AST_Node *temp_return;
 
 /* Non-terminal definitions */
 %type <node> program
-%type <node> func_deflist
-%type <node> func_def
-%type <node> func_paramlist
-%type <Param> func_param
-%type <node> func_body
-%type <node> func_st_list
-%type <node> ret_st
-%type <node> st
 %type <node> constant
 %type <data_type> type
-%type <data_type> return_type
+%type <node> func_arglist
+%type <node> func_call
+%type <node> primary_exp
+%type <node> unary_exp
+%type <node> mult_exp
+%type <node> add_exp
+%type <node> comp_exp
+%type <node> exp
 %type <node> assign_st
 %type <node> if_st
+%type <node> while_st
+%type <node> ret_st
+%type <node> st_list
+%type <node> block_st
+%type <node> empty_st
+%type <node> func_call_st
+%type <node> st
+%type <data_type> return_type
+%type <node> var_def
+%type <node> var_deflist
+%type <node> func_st_list
+%type <node> func_body
+%type <node> func_param
+%type <node> func_paramlist
+%type <node> func_def
+%type <node> func_deflist
 
 %union {
     Value value;
@@ -296,7 +311,7 @@ func_st_list: ret_st
     }
     | st func_st_list
     {
-        // If NULL, is a ret_st. Do not add.
+        // If NULL, is a ret_st or empty_st. Do not add.
         if (st) {
             AST_Statements *temp = (AST_Statements *) $2;
             new_ast_statements(temp->statements, temp->num_statements, $1);
