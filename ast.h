@@ -13,24 +13,28 @@ typedef enum NodeType {
     AST_CONST,              // Constant variable
 
     // Statements
-    AST_STATEMENT,  // Statement
+    AST_STATEMENTS,
     AST_IF,         // If statement
     AST_WHILE,      // While statement
     AST_ASSIGNMENT, // Assignment statement
+    AST_FUNC_CALL_PARAMS,
     AST_FUNC_CALL,  // Function call statement
 
     // Expressions
-    ARITH_NODE,     // Arithmetic expression
-    REL_NODE,       // Relational expression
-    EQUAL_NODE,     // Equality expression
+    AST_UNARY,
+    AST_ARITH,
+    AST_RELAT,
+    AST_EQUAL,
 
     // Functions
     AST_FUNC_BODY,         // Function body
     AST_FUNC_DECLARATIONS, // Function declarations
     AST_FUNC_DECLARATION,  // Function declaration
     AST_FUNC_DECLARATION_PARAMS,
-    AST_RETURN,            // Function return
+    AST_FUNC_RETURN,
     AST_MAIN_RETURN,       // Main function return
+
+    AST_IDENTIFIER_CONTAINER,
 } NodeType;
 
 /* --- Value Union --- */
@@ -61,6 +65,11 @@ typedef enum EqualOp {
     NOT_EQ, // != operator
 } EqualOp;
 
+typedef enum Sign {
+    POSITIVE,
+    NEGATIVE,
+} Sign;
+
 /* --- Nodes --- */
 typedef struct AST_Node {
     NodeType type;
@@ -78,8 +87,9 @@ typedef struct AST_Function_Declaration {
     NodeType type;
     int return_type;
     Symbol *entry;
-    AST_Node **params;
-    AST_Node *body;
+    AST_Node *params;
+    AST_Node *var_declarations;
+    AST_Node *statements;
     AST_Node *return_node;
 } AST_Function_Declaration;
 
@@ -101,32 +111,16 @@ typedef struct AST_Main_Return {
     AST_Node *return_value;
 } AST_Main_Return;
 
-/*
 typedef struct AST_Const {
     NodeType type;
     int const_type;
     Value val;
 } AST_Const;
-
-typedef struct AST_Declarations {
+typedef struct AST_Assignment {
     NodeType type;
-    AST_Node **declarations;
-    int declaration_count;
-} AST_Declarations;
-
-typedef struct AST_Decl {
-    NodeType type;
-    int var_type;
-    Symbol **names;
-    int names_count;
-} AST_Decl;
-
-typedef struct AST_Statements {
-    NodeType type;
-    AST_Node **statements;
-    int statement_count;
-} AST_Statements;
-
+    Symbol *entry;
+    AST_Node *assign_value;
+} AST_Assignment;
 typedef struct AST_If {
     NodeType type;
     AST_Node *condition;
@@ -140,11 +134,45 @@ typedef struct AST_While {
     AST_Node *while_branch;
 } AST_While;
 
-typedef struct AST_Assign {
+typedef struct AST_Function_Call {
     NodeType type;
     Symbol *entry;
-    AST_Node *assign_value;
-} AST_Assign;
+    AST_Node *params;
+    int num_params;
+} AST_Function_Call;
+
+typedef struct AST_Function_Call_Params {
+    NodeType type;
+    Param *params;
+    int num_params;
+    // A call param can be a expression, so we do not use Param
+    // like AST_Function_Declaration_Params.
+} AST_Function_Call_Params;
+
+typedef struct AST_Statements {
+    NodeType type;
+    AST_Node **statements;
+    int num_statements;
+} AST_Statements;
+
+typedef struct AST_Var_Declarations {
+    NodeType type;
+    AST_Node **var_declarations;
+    int num_vars;
+} AST_Var_Declarations;
+
+typedef struct AST_Var_Declaration {
+    NodeType type;
+    int data_type;
+    Symbol *entry;
+    // Value stored in symbol table entry
+} AST_Var_Declaration;
+
+typedef struct AST_Unary {
+    NodeType type;
+    Sign sign;
+    NodeType *expression;
+} AST_Unary;
 
 typedef struct AST_Arith {
     NodeType type;
@@ -167,18 +195,9 @@ typedef struct AST_Equal {
     AST_Node *right;
 } AST_Equal;
 
-typedef struct AST_Function_Call {
+typedef struct AST_Identifier_Container {
     NodeType type;
     Symbol *entry;
-    AST_Node **params;
-    int num_params;
-} AST_Function_Call;
-
-typedef struct AST_Function_Call_Params {
-    NodeType type;
-    AST_Node **params;
-    int num_params;
-} AST_Function_Call_Params;
-*/
+} AST_Identifier_Container;
 
 #endif

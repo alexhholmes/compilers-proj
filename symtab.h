@@ -12,6 +12,13 @@
 #define STR_TYPE 4
 #define FUNCTION_TYPE 5
 #define LOGIC_TYPE 6
+#define VOID_TYPE
+
+/* Const Types */
+#define INT_CONST_TYPE 0
+#define FLOAT_CONST_TYPE 1
+#define CHAR_CONST_TYPE 2
+#define STRING_CONST_TYPE 3
 
 /* Function Parameter Passing */
 #define BY_VALUE 0
@@ -54,6 +61,9 @@ typedef struct Symbol {
     int return_type;
     Param *parameters;
     int num_params;
+
+    // For function call symbols
+    int passing;
 
     #ifdef DEBUG
     RefList *lines;
