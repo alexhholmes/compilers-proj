@@ -121,7 +121,10 @@ program: func_deflist { ast_traversal($1); }
 
 constant: INT_CONST { $$ = new_ast_const(INT_CONST_TYPE, $1); }
     | FLOAT_CONST { $$ = new_ast_const(FLOAT_CONST_TYPE, $1); }
-    | STRING_CONST { $$ = new_ast_const(STRING_CONST_TYPE, $1); }
+    | STRING_CONST 
+    { 
+        $$ = new_ast_const(STRING_CONST_TYPE, $1);
+    }
     | CHAR_CONST { $$ = new_ast_const(CHAR_CONST_TYPE, $1); }
     ;
 

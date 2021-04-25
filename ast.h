@@ -42,8 +42,14 @@ typedef union Value {
     int int_value;
     char char_value;
     float float_value;
-    char *string_value;
+    StringValue string_value;
 } Value;
+
+typedef struct StringValue {
+    char *val;
+    // The LC#: label for codegen
+    int asm_label;
+} StringValue;
 
 /* --- Operator Types --- */
 typedef enum ArithOp {
@@ -183,7 +189,7 @@ typedef struct AST_Arith {
 
 typedef struct AST_Relat {
     NodeType type;
-    RelOp op;
+    RelatOp op;
     AST_Node *left;
     AST_Node *right;
 } AST_Relat;
@@ -200,6 +206,7 @@ typedef struct AST_Identifier_Container {
     Symbol *entry;
 } AST_Identifier_Container;
 
+void ast_traversal(AST_Node *node); // TODO Write function in ast.c
 AST_Node *new_ast_node(NodeType type, AST_Node *left, AST_Node *right);
 AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_params, Param param);
 AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Function_Declaration *func_declaration);

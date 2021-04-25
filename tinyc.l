@@ -1,9 +1,12 @@
 %{
 #include "tinylex.tab.h"
 #include "symtab.h"
+#include "ast.h"
+#include "codegen.h"
 
 #include <math.h>
 
+extern string_label_counter;
 int num_line = 1;
 %}
 
@@ -67,8 +70,12 @@ STRING \"(\\.|[^"\\])*\"
 {FLOAT}                 { yylval.value.float_value = atof(yytext);                                
                           return(FLOAT_CONST); }
 
-{STRING}                { yylval.value.string_value = yytext;
-                          return (STRING_CONST); }
+                        { append_string_const(yytext);
+{STRING}                  StringValue string_value;
+                          string_value.val = yytext;
+                          string_value.asm_label = string_label_counter;
+                          yylval.value.string_value = string_value;
+                          return(STRING_CONST); }
 
 [ \t]                   /* skip whitespace */
 [\n\r]                  { num_line++; }

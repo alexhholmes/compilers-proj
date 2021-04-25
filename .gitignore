@@ -4,3 +4,5 @@ lex.yy.c
 *.tab.h
 parser
 *.output
+*.s
+Dockerfile

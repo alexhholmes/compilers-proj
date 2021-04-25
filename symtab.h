@@ -62,8 +62,7 @@ typedef struct Symbol {
     Param *parameters;
     int num_params;
 
-    // For function call symbols
-    int passing;
+    // For function call symbol
 
     #ifdef DEBUG
     RefList *lines;
