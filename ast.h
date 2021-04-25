@@ -53,12 +53,12 @@ typedef enum ArithOp {
     DIV, // / operator
 } ArithOp;
 
-typedef enum RelOp {
+typedef enum RelatOp {
     GREATER,       // > operator
     LESS,          // < operator
     GREATER_EQUAL, // >= operator
     LESS_EQUAL,    // <= operator
-} RelOp;
+} RelatOp;
 
 typedef enum EqualOp {
     EQ,     // == operator
@@ -199,5 +199,26 @@ typedef struct AST_Identifier_Container {
     NodeType type;
     Symbol *entry;
 } AST_Identifier_Container;
+
+AST_Node *new_ast_node(NodeType type, AST_Node *left, AST_Node *right);
+AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_params, Param param);
+AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Function_Declaration *func_declaration);
+AST_Node *new_ast_function_declaration(int return_type, Symbol *entry, AST_Node *params, AST_Node *var_declarations, AST_Node *statements, AST_Node *return_node);
+AST_Node *new_ast_function_return(AST_Node *return_value);
+AST_Node *new_ast_main_return(AST_Node *return_value);
+AST_Node *new_ast_const(int const_type, Value val);
+AST_Node *new_ast_assignment(Symbol *entry, AST_Node *assign_value);
+AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node else_branch);
+AST_Node *new_ast_while(AST_Node *condition, AST_Node *while_branch);
+AST_Node *new_ast_function_call(Symbol *entry, AST_Node **params, int num_params);
+AST_Node *new_ast_function_call_params(AST_Node **params, int num_params, AST_Node *param);
+AST_Node *new_ast_statements(AST_Node **statements, int num_statements, AST_Node *statement);
+AST_Node *new_ast_var_declarations(AST_Node **var_declarations, int num_vars, AST_Node *var_declaration);
+AST_Node *new_ast_var_declaration(Symbol *entry, int data_type);
+AST_Node *new_ast_arith(ArithOp op, AST_Node *left, AST_Node *right);
+AST_Node *new_ast_relat(RelatOp op, AST_Node *left, AST_Node *right);
+AST_Node *new_ast_equal(EqualOp op, AST_Node *left, AST_Node *right);
+AST_Node *new_identifier_container(Symbol *entry);
+AST_Node *new_ast_unary(Sign sign, NodeType *expression);
 
 #endif
