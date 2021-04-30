@@ -271,3 +271,149 @@ AST_Node *new_ast_unary(Sign sign, NodeType *expression) {
 
     return (struct AST_Node *) node;
 }
+
+void ast_print_traversal(AST_Node *node, int indention) {
+    switch (node->type) {
+        case AST_NODE:
+            ast_indented_println("AST_NODE", indention);
+            if (node->left) ast_print_traversal(node->left, indention + 1);
+            if (node->right) ast_print_traversal(node->right, indention + 1);
+            break;
+
+        case AST_FUNC_DECLARATION_PARAMS:
+            AST_Function_Declaration_Params *temp = (AST_Function_Declaration_Params*) node;
+            
+            ast_indented_print("AST_FUNC_DECLARATION_PARAMS: ", indention);
+
+            // Print space-separated params of this function declaration
+            Param *params = temp->params;
+            for (int i = 0; i < temp->num_params; i++) {
+                Param param = params[i];
+                printf("%s ", param);
+            }
+            printf("\n");
+
+            break;
+
+        case AST_FUNC_DECLARATIONS:
+            AST_Function_Declarations *temp = (AST_Function_Declarations*) node;
+
+            ast_indented_println("AST_FUNC_DECLARATIONS", indention);
+
+            // Traverse the individual function declarations
+            for (int i = 0; i < temp->func_declaration_count; i++) {
+                ast_print_traversal(temp->func_declarations[i], indention + 1);
+            }
+
+            break;
+
+        case AST_FUNC_DECLARATION:
+            AST_Function_Declaration *temp = (AST_Function_Declaration*) node;
+
+            ast_indented_println("AST_FUNC_DECLARATION", indention);
+            if (temp->params) ast_print_traversal(temp->params, indention + 1);
+            if (temp->var_declarations) ast_print_traversal(temp->var_declarations, indention + 1);
+            if (temp->statements) ast_print_traversal(temp->statements, indention + 1);
+            if (temp->return_node) ast_print_traversal(temp->return_node, indention + 1);
+
+            break;
+
+        case AST_FUNC_RETURN:
+            AST_Function_Return *temp = (AST_Function_Return*) node;
+
+            ast_indented_println("AST_FUNC_RETURN", indention);
+            if (temp->return_value) ast_print_traversal(temp->return_value, indention + 1);
+
+            break;
+
+        case AST_MAIN_RETURN:
+            AST_Main_Return *temp = (AST_Main_Return*) node;
+
+            ast_indented_println("AST_MAIN_RETURN", indention);
+            ast_print_traversal(temp->return_value, indention + 1);
+
+            break;
+
+        case AST_ASSIGNMENT:
+            AST_Assignment *temp = (AST_Assignment*) node;
+
+            ast_indented_println("AST_ASSIGNMENT", indention);
+            ast_print_traversal(temp->assignment_value, indention + 1);
+
+            break;
+
+        case AST_IF:
+            AST_If *temp = (AST_If*) node;
+
+            ast_indented_println("AST_IF", indention);
+            ast_print_traversal(temp->condition, indention + 1);
+            ast_print_traversal(temp->if_branch, indention + 1);
+            if (temp->else_branch) ast_print_traversal(temp->else_branch, indention + 1);
+
+            break;
+
+        case AST_WHILE:
+            AST_While *temp = (AST_While*) node;
+
+            ast_indented_print("AST_WHILE", indention);
+            ast_print_traversal(temp->condition, indention + 1);
+            ast_print_traversal(temp->while_branch, indention + 1);
+
+            break;
+
+        case AST_FUNC_CALL:
+            AST_Function_Call *temp = (AST_Function_Call*) node;
+
+            ast_indented_print("AST_FUNC_CALL", indention);
+
+            break;
+
+        case AST_FUNC_CALL_PARAMS:
+
+            break;
+
+        case AST_STATEMENTS:
+
+            break;
+
+        case AST_VAR_DECLARATIONS:
+
+            break;
+
+        case AST_VAR_DECLARATION:
+
+            break;
+
+        case AST_ARITH:
+
+            break;
+
+        case AST_EQUAL:
+
+            break;
+
+        case AST_IDENTIFIER_CONTAINER:
+
+            break;
+
+        case AST_UNARY:
+
+            break;
+
+        default:
+            printf("Unknown AST type!");
+            exit(1);
+    }
+}
+
+void ast_indented_println(char *node_type, int indention) {
+    ast_indented_print(node_type, indention);
+    printf("\n");
+}
+
+void ast_indented_print(char *node_type, int indention) {
+    for (int i = 0; i < indention; i++) {
+        putchar('\t');
+    }
+    printf("%s", node_type);
+}

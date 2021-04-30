@@ -115,7 +115,7 @@ AST_Node *temp_return;
 
 %% 
 
-program: func_deflist { ast_traversal($1); }
+program: func_deflist { ast_traversal($1, 0); }
     ;
 
 constant: INT_CONST { $$ = new_ast_const(INT_CONST_TYPE, $1); }
@@ -142,7 +142,6 @@ func_arglist: PTR IDENTIFIER
     {
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $3;
         $$ = new_ast_function_call_params($3, temp->num_params, $1);
-        // TODO Fix a bunch of stuff relating to Params struct being used here
     }
     | PTR IDENTIFIER COMMA func_arglist
     {

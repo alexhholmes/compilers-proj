@@ -143,10 +143,8 @@ typedef struct AST_Function_Call {
 
 typedef struct AST_Function_Call_Params {
     NodeType type;
-    Param *params;
+    AST_Node **params;
     int num_params;
-    // A call param can be a expression, so we do not use Param
-    // like AST_Function_Declaration_Params.
 } AST_Function_Call_Params;
 
 typedef struct AST_Statements {
@@ -183,7 +181,7 @@ typedef struct AST_Arith {
 
 typedef struct AST_Relat {
     NodeType type;
-    RelOp op;
+    RelatOp op;
     AST_Node *left;
     AST_Node *right;
 } AST_Relat;
@@ -200,6 +198,8 @@ typedef struct AST_Identifier_Container {
     Symbol *entry;
 } AST_Identifier_Container;
 
+void ast_print_traversal(AST_Node *node, int indention);
+void ast_indented_print(char *node_type, int indention);
 AST_Node *new_ast_node(NodeType type, AST_Node *left, AST_Node *right);
 AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_params, Param param);
 AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Function_Declaration *func_declaration);
