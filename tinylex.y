@@ -133,7 +133,8 @@ type: INT { $$ = INT_TYPE; }
 func_arglist: PTR IDENTIFIER
     {
         $2->passing = REFERENCE;
-        $$ = new_ast_function_call_params(NULL, 0, $2);
+        AST_Identifier_Container *temp = new_ast_identifier_container($2);
+        $$ = new_ast_function_call_params(NULL, 0, temp);
     }
     | exp
     {
@@ -146,9 +147,10 @@ func_arglist: PTR IDENTIFIER
     }
     | PTR IDENTIFIER COMMA func_arglist
     {
-        $2->passing = REFERENCE;
+        $2->passing = BY_REF;
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $4;
-        $$ = new_ast_function_call_params($4, temp->num_params, $2);
+        AST_Identifier_Container *temp2 = new_ast_identifier_container($2);
+        $$ = new_ast_function_call_params($4, temp->num_params, temp2);
     }
     ;
 
@@ -176,7 +178,7 @@ primary_exp: constant { $$ = $1; }
 unary_exp: primary_exp { $$ = $1; }
     | PLUS unary_exp
     {
-        if (unary_exp->type == AST_UNARY) {
+        if ($2->type == AST_UNARY) {
             // Just pass unary with unmodified sign if nested unary
             $$ = $2;
         } else {
@@ -185,7 +187,7 @@ unary_exp: primary_exp { $$ = $1; }
     }
     | MINUS unary_exp
     {
-        if (unary_exp->type == AST_UNARY) {
+        if ($2->type == AST_UNARY) {
             // Only modify sign if nested unary
             AST_Unary *temp = (AST_Unary *) $2;
             temp->sign = NEGATIVE;
@@ -297,7 +299,7 @@ var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT c
 var_deflist: /* epsilon */ { $$ = NULL; declared = false; }
     | var_def var_deflist
     {
-        if (var_def) {
+        if ($1) {
             AST_Var_Declarations *temp = (AST_Var_Declarations *) $2;
             $$ = new_ast_var_declarations($2, temp->num_vars, $1);
         }
@@ -312,7 +314,7 @@ func_st_list: ret_st
     | st func_st_list
     {
         // If NULL, is a ret_st or empty_st. Do not add.
-        if (st) {
+        if ($1) {
             AST_Statements *temp = (AST_Statements *) $2;
             new_ast_statements(temp->statements, temp->num_statements, $1);
         }
@@ -338,8 +340,8 @@ func_paramlist: func_param
     }
     | func_paramlist COMMA func_param
     {
-        AST_Function_declaration_Params *temp = (AST_Function_declaration_Params*);
-        $$ = new_ast_function_declaration_params(temp->parameters, temp->num_params, $3);
+        AST_Function_Declaration_Params *temp = (AST_Function_Declaration_Params*) $1;
+        $$ = new_ast_function_declaration_params(temp->params, temp->num_params, $3);
     }
     ;
 

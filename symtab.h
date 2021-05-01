@@ -12,7 +12,7 @@
 #define STR_TYPE 4
 #define FUNCTION_TYPE 5
 #define LOGIC_TYPE 6
-#define VOID_TYPE
+#define VOID_TYPE 7
 
 /* Const Types */
 #define INT_CONST_TYPE 0

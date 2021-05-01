@@ -1,5 +1,6 @@
 #include "ast.h"
 
+#include <stdio.h>
 #include <string.h>
 
 AST_Node *new_ast_node(NodeType type, AST_Node *left, AST_Node *right) {
@@ -20,7 +21,7 @@ AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_para
     if (!parameters) {
         // First parameter declaration
         parameters = (Param*) malloc(sizeof(Param));
-        parameters[0] = param/ast_;
+        parameters[0] = param;
         num_of_params = 1;
     } else {
         // Append new parameter declaration
@@ -35,7 +36,7 @@ AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_para
     return (struct AST_Node *) node;
 }
 
-AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Function_Declaration *func_declaration) {
+AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Node *func_declaration) {
     AST_Function_Declarations *node = malloc(sizeof(AST_Function_Declarations));
 
     node->type = AST_FUNC_DECLARATIONS;
@@ -66,7 +67,7 @@ AST_Node *new_ast_function_declaration(int return_type, Symbol *entry, AST_Node 
     node->return_type = return_type;
     node->entry = entry;
     node->params = params;
-    node->body = statements;
+    node->statements = statements;
     node->return_node = return_node;
 
     return (struct AST_Node *) node;
@@ -83,7 +84,7 @@ AST_Node *new_ast_function_return(AST_Node *return_value) {
 }
 
 AST_Node *new_ast_main_return(AST_Node *return_value) {
-    AST_MAIN_RETURN *node = malloc(sizeof(AST_MAIN_RETURN));
+    AST_Main_Return *node = malloc(sizeof(AST_MAIN_RETURN));
 
     node->type = AST_MAIN_RETURN;
     node->return_value = return_value;
@@ -110,7 +111,7 @@ AST_Node *new_ast_assignment(Symbol *entry, AST_Node *assign_value) {
     return (struct AST_Node *) node;
 }
 
-AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node else_branch) {
+AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node *else_branch) {
     AST_If *node = malloc(sizeof(AST_If));
 
     node->type = AST_IF;
@@ -176,7 +177,7 @@ AST_Node *new_ast_statements(AST_Node **statements, int num_statements, AST_Node
         num_statements = 1;
     } else {
         // Append new statement
-        statements = (AST_Node**) realloc(statments, (num_statements + 1) * sizeof(AST_Node*));
+        statements = (AST_Node**) realloc(statements, (num_statements + 1) * sizeof(AST_Node*));
         statements[num_statements] = statement;
         num_statements++;
     }
@@ -262,7 +263,7 @@ AST_Node *new_identifier_container(Symbol *entry) {
     return (struct AST_Node *) node;
 }
 
-AST_Node *new_ast_unary(Sign sign, NodeType *expression) {
+AST_Node *new_ast_unary(Sign sign, AST_Node *expression) {
     AST_Unary *node = malloc(sizeof(AST_Unary));
 
     node->type = AST_UNARY;
@@ -275,173 +276,210 @@ AST_Node *new_ast_unary(Sign sign, NodeType *expression) {
 void ast_print_traversal(AST_Node *node, int indention) {
     switch (node->type) {
         case AST_NODE:
-            ast_indented_println("AST_NODE", indention);
-            if (node->left) ast_print_traversal(node->left, indention + 1);
-            if (node->right) ast_print_traversal(node->right, indention + 1);
+            {
+                ast_indented_println("AST_NODE", indention);
+                if (node->left) ast_print_traversal(node->left, indention + 1);
+                if (node->right) ast_print_traversal(node->right, indention + 1);
+            }
+
             break;
 
         case AST_FUNC_DECLARATION_PARAMS:
-            AST_Function_Declaration_Params *temp = (AST_Function_Declaration_Params*) node;
-            
-            ast_indented_print("AST_FUNC_DECLARATION_PARAMS: ", indention);
+            {
+                AST_Function_Declaration_Params *temp = (AST_Function_Declaration_Params*) node;
+                
+                ast_indented_print("AST_FUNC_DECLARATION_PARAMS: ", indention);
 
-            // Print space-separated params of this function declaration
-            Param *params = temp->params;
-            for (int i = 0; i < temp->num_params; i++) {
-                Param param = params[i];
-                printf("%s ", param);
+                // Print space-separated params of this function declaration
+                Param *params = temp->params;
+                for (int i = 0; i < temp->num_params; i++) {
+                    Param param = params[i];
+                    printf("%s ", param.param_name);
+                }
+                printf("\n");
             }
-            printf("\n");
 
             break;
 
         case AST_FUNC_DECLARATIONS:
-            AST_Function_Declarations *temp = (AST_Function_Declarations*) node;
+            {
+                AST_Function_Declarations *temp = (AST_Function_Declarations*) node;
 
-            ast_indented_println("AST_FUNC_DECLARATIONS", indention);
+                ast_indented_println("AST_FUNC_DECLARATIONS", indention);
 
-            // Traverse the individual function declarations
-            for (int i = 0; i < temp->func_declaration_count; i++) {
-                ast_print_traversal(temp->func_declarations[i], indention + 1);
+                // Traverse the individual function declarations
+                for (int i = 0; i < temp->func_declaration_count; i++) {
+                    ast_print_traversal(temp->func_declarations[i], indention + 1);
+                }
             }
 
             break;
 
         case AST_FUNC_DECLARATION:
-            AST_Function_Declaration *temp = (AST_Function_Declaration*) node;
+            {
+                AST_Function_Declaration *temp = (AST_Function_Declaration*) node;
 
-            ast_indented_println("AST_FUNC_DECLARATION", indention);
-            if (temp->params) ast_print_traversal(temp->params, indention + 1);
-            if (temp->var_declarations) ast_print_traversal(temp->var_declarations, indention + 1);
-            if (temp->statements) ast_print_traversal(temp->statements, indention + 1);
-            if (temp->return_node) ast_print_traversal(temp->return_node, indention + 1);
+                ast_indented_println("AST_FUNC_DECLARATION", indention);
+                if (temp->params) ast_print_traversal(temp->params, indention + 1);
+                if (temp->var_declarations) ast_print_traversal(temp->var_declarations, indention + 1);
+                if (temp->statements) ast_print_traversal(temp->statements, indention + 1);
+                if (temp->return_node) ast_print_traversal(temp->return_node, indention + 1);
+            }
 
             break;
 
         case AST_FUNC_RETURN:
-            AST_Function_Return *temp = (AST_Function_Return*) node;
+            {
+                AST_Function_Return *temp = (AST_Function_Return*) node;
 
-            ast_indented_println("AST_FUNC_RETURN", indention);
-            if (temp->return_value) ast_print_traversal(temp->return_value, indention + 1);
+                ast_indented_println("AST_FUNC_RETURN", indention);
+                if (temp->return_value) ast_print_traversal(temp->return_value, indention + 1);
+            }
 
             break;
 
         case AST_MAIN_RETURN:
-            AST_Main_Return *temp = (AST_Main_Return*) node;
+            {
+                AST_Main_Return *temp = (AST_Main_Return*) node;
 
-            ast_indented_println("AST_MAIN_RETURN", indention);
-            ast_print_traversal(temp->return_value, indention + 1);
+                ast_indented_println("AST_MAIN_RETURN", indention);
+                ast_print_traversal(temp->return_value, indention + 1);
+            }
 
             break;
 
         case AST_ASSIGNMENT:
-            AST_Assignment *temp = (AST_Assignment*) node;
+            {
+                AST_Assignment *temp = (AST_Assignment*) node;
 
-            ast_indented_println("AST_ASSIGNMENT", indention);
-            ast_print_traversal(temp->assignment_value, indention + 1);
+                ast_indented_println("AST_ASSIGNMENT", indention);
+                ast_print_traversal(temp->assign_value, indention + 1);
+            }
 
             break;
 
         case AST_IF:
-            AST_If *temp = (AST_If*) node;
+            {
+                AST_If *temp = (AST_If*) node;
 
-            ast_indented_println("AST_IF", indention);
-            ast_print_traversal(temp->condition, indention + 1);
-            ast_print_traversal(temp->if_branch, indention + 1);
-            if (temp->else_branch) ast_print_traversal(temp->else_branch, indention + 1);
+                ast_indented_println("AST_IF", indention);
+                ast_print_traversal(temp->condition, indention + 1);
+                ast_print_traversal(temp->if_branch, indention + 1);
+                if (temp->else_branch) ast_print_traversal(temp->else_branch, indention + 1);
+            }
 
             break;
 
         case AST_WHILE:
-            AST_While *temp = (AST_While*) node;
+            {
+                AST_While *temp = (AST_While*) node;
 
-            ast_indented_println("AST_WHILE", indention);
-            ast_print_traversal(temp->condition, indention + 1);
-            ast_print_traversal(temp->while_branch, indention + 1);
+                ast_indented_println("AST_WHILE", indention);
+                ast_print_traversal(temp->condition, indention + 1);
+                ast_print_traversal(temp->while_branch, indention + 1);
+            }
 
             break;
 
         case AST_FUNC_CALL:
-            AST_Function_Call *temp = (AST_Function_Call*) node;
+            {
+                AST_Function_Call *temp = (AST_Function_Call*) node;
 
-            ast_indented_print("AST_FUNC_CALL", indention);
+                ast_indented_print("AST_FUNC_CALL", indention);
+            }
 
             break;
 
         case AST_FUNC_CALL_PARAMS:
-            AST_Function_Call_Params *temp = (AST_Function_Call_Params*) node;
+            {
+                AST_Function_Call_Params *temp = (AST_Function_Call_Params*) node;
 
-            ast_indented_println("AST_FUNC_CALL_PARAMS", indention);
-            for (int i = 0; i < temp->num_params, i++) {
-                ast_print_traversal(temp->params[i], indention + 1);
+                ast_indented_println("AST_FUNC_CALL_PARAMS", indention);
+                for (int i = 0; i < temp->num_params; i++) {
+                    ast_print_traversal(temp->params[i], indention + 1);
+                }
             }
 
             break;
 
         case AST_STATEMENTS:
-            AST_Statements *temp = (AST_Statements*) node;
+            {
+                AST_Statements *temp = (AST_Statements*) node;
 
-            ast_indented_println("AST_STATEMENTS", indention);
-            for (int i = 0; i < temp->num_statements, i++) {
-                ast_indented_print(temp->statements[i], indention + 1);
+                ast_indented_println("AST_STATEMENTS", indention);
+                for (int i = 0; i < temp->num_statements; i++) {
+                    ast_print_traversal(temp->statements[i], indention + 1);
+                }
             }
 
             break;
 
         case AST_VAR_DECLARATIONS:
-            AST_Var_Declarations *temp = (AST_Var_Declarations*) node;
+            {
+                AST_Var_Declarations *temp = (AST_Var_Declarations*) node;
 
-            ast_indented_println("AST_VAR_DECLARATIONS", indention);
-            for (int i = 0; i < temp->num_vars, i++) {
-                ast_indented_print(temp->var_declarations[i], indention + 1);
+                ast_indented_println("AST_VAR_DECLARATIONS", indention);
+                for (int i = 0; i < temp->num_vars; i++) {
+                    ast_print_traversal(temp->var_declarations[i], indention + 1);
+                }
             }
 
             break;
 
         case AST_VAR_DECLARATION:
-            AST_Var_Declaration *temp = (AST_Var_Declaration*) node;
+            {
+                AST_Var_Declaration *temp = (AST_Var_Declaration*) node;
 
-            ast_indented_println("AST_VAR_DECLARATION %d", temp->data_type);
+                ast_indented_println("AST_VAR_DECLARATION %d", temp->data_type);
+            }
 
             break;
 
         case AST_ARITH:
-            AST_Arith *temp = (AST_Arith*) node;
+            {
+                AST_Arith *temp = (AST_Arith*) node;
 
-            ast_indented_println("AST_ARITH");
-            ast_print_traversal(temp->left, indention + 1);
-            ast_print_traversal(temp->right, indention + 1);
+                ast_indented_println("AST_ARITH", indention);
+                ast_print_traversal(temp->left, indention + 1);
+                ast_print_traversal(temp->right, indention + 1);
+            }
 
             break;
 
         case AST_RELAT:
-            AST_Relat *temp = (AST_Relat*) node;
+            {
+                AST_Relat *temp = (AST_Relat*) node;
 
-            ast_indented_println("AST_RELAT");
-            ast_print_traversal(temp->left, indention + 1);
-            ast_print_traversal(temp->right, indention + 1);
+                ast_indented_println("AST_RELAT", indention);
+                ast_print_traversal(temp->left, indention + 1);
+                ast_print_traversal(temp->right, indention + 1);
+            }
 
             break;
 
         case AST_EQUAL:
-            AST_Equal *temp = (AST_Equal*) node;
+            {
+                AST_Equal *temp = (AST_Equal*) node;
 
-            ast_indented_println("AST_EQUAL");
-            ast_print_traversal(temp->left, indention + 1);
-            ast_print_traversal(temp->right, indention + 1);
+                ast_indented_println("AST_EQUAL", indention);
+                ast_print_traversal(temp->left, indention + 1);
+                ast_print_traversal(temp->right, indention + 1);
+            }
 
             break;
 
         case AST_IDENTIFIER_CONTAINER:
-            ast_indented_println("AST_IDENTIFIER_CONTAINER");
+            ast_indented_println("AST_IDENTIFIER_CONTAINER", indention);
 
             break;
 
         case AST_UNARY:
-            AST_Unary *temp = (AST_Unary*) node;
+            {
+                AST_Unary *temp = (AST_Unary*) node;
 
-            ast_indented_println("AST_UNARY");
-            ast_print_traversal(temp->expression, indention + 1);
+                ast_indented_println("AST_UNARY", indention);
+                ast_print_traversal(temp->expression, indention + 1);
+            }
 
             break;
 
