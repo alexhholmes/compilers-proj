@@ -31,11 +31,6 @@ void generate_string_declarations(FILE *fp) {
     }
 }
 
-void generate_functions(FILE *fp) {
-    fprintf(fp, "\t.globl\tmain");
-
-}
-
 void append_string_const(char *string_value) {
     if (!string_consts) {
         // First 
@@ -47,4 +42,9 @@ void append_string_const(char *string_value) {
         string_consts[string_label_counter] = string_value;
         string_label_counter++;
     }
+}
+
+void generate_functions(FILE *fp) {
+    fprintf(fp, "\t.globl\tmain\n");
+    // TODO
 }
