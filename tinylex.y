@@ -92,6 +92,7 @@ AST_Node *temp_return;
 %type <node> st
 %type <data_type> return_type
 %type <node> var_def
+%type <symbol_item> func_def_identifier
 %type <node> var_deflist
 %type <node> func_st_list
 %type <node> func_body
@@ -293,7 +294,7 @@ var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT c
     }
     ;
 
-var_deflist: /* epsilon */ { $$ = NULL; }
+var_deflist: /* epsilon */ { $$ = NULL; declared = false; }
     | var_def var_deflist
     {
         if (var_def) {
@@ -342,7 +343,14 @@ func_paramlist: func_param
     }
     ;
 
-func_def: return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+func_def_identifier: { declared = true; } IDENTIFIER
+    {
+        declared = false;
+        $$ = $2;
+    }
+    ;
+
+func_def: return_type func_def_identifier LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
     {
         // func_body ($9) split b/c way grammar was designed, requires some sort
         // of node to be returned that stores var_def_list and func_st_list.
@@ -350,17 +358,15 @@ func_def: return_type { declared = true; } IDENTIFIER { declared = false; } LTPA
         // easier to do this than to bubble up.
         // temp_return should be null for VOID function declarations (handled
         // in semantic analysis).
-        $$ = new_ast_function_declaration($1, $3, $6, $9->left, $9->right, temp_return);
+        $$ = new_ast_function_declaration($1, $2, $4, $7->left, $7->right, temp_return);
         temp_return = NULL;
     }
-    | return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+    | return_type func_def_identifier LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     {
-        $$ = new_ast_function_declaration($1, $3, NULL, %9->left, %9->right, temp_return);
+        $$ = new_ast_function_declaration($1, $2, NULL, %7->left, %7->right, temp_return);
         temp_return = NULL;
     }
     ;
-
-/* programs */
 
 func_deflist: func_deflist func_def 
     {

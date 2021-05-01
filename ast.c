@@ -20,7 +20,7 @@ AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_para
     if (!parameters) {
         // First parameter declaration
         parameters = (Param*) malloc(sizeof(Param));
-        parameters[0] = param;
+        parameters[0] = param/ast_;
         num_of_params = 1;
     } else {
         // Append new parameter declaration
@@ -355,7 +355,7 @@ void ast_print_traversal(AST_Node *node, int indention) {
         case AST_WHILE:
             AST_While *temp = (AST_While*) node;
 
-            ast_indented_print("AST_WHILE", indention);
+            ast_indented_println("AST_WHILE", indention);
             ast_print_traversal(temp->condition, indention + 1);
             ast_print_traversal(temp->while_branch, indention + 1);
 
@@ -369,34 +369,79 @@ void ast_print_traversal(AST_Node *node, int indention) {
             break;
 
         case AST_FUNC_CALL_PARAMS:
+            AST_Function_Call_Params *temp = (AST_Function_Call_Params*) node;
+
+            ast_indented_println("AST_FUNC_CALL_PARAMS", indention);
+            for (int i = 0; i < temp->num_params, i++) {
+                ast_print_traversal(temp->params[i], indention + 1);
+            }
 
             break;
 
         case AST_STATEMENTS:
+            AST_Statements *temp = (AST_Statements*) node;
+
+            ast_indented_println("AST_STATEMENTS", indention);
+            for (int i = 0; i < temp->num_statements, i++) {
+                ast_indented_print(temp->statements[i], indention + 1);
+            }
 
             break;
 
         case AST_VAR_DECLARATIONS:
+            AST_Var_Declarations *temp = (AST_Var_Declarations*) node;
+
+            ast_indented_println("AST_VAR_DECLARATIONS", indention);
+            for (int i = 0; i < temp->num_vars, i++) {
+                ast_indented_print(temp->var_declarations[i], indention + 1);
+            }
 
             break;
 
         case AST_VAR_DECLARATION:
+            AST_Var_Declaration *temp = (AST_Var_Declaration*) node;
+
+            ast_indented_println("AST_VAR_DECLARATION %d", temp->data_type);
 
             break;
 
         case AST_ARITH:
+            AST_Arith *temp = (AST_Arith*) node;
+
+            ast_indented_println("AST_ARITH");
+            ast_print_traversal(temp->left, indention + 1);
+            ast_print_traversal(temp->right, indention + 1);
+
+            break;
+
+        case AST_RELAT:
+            AST_Relat *temp = (AST_Relat*) node;
+
+            ast_indented_println("AST_RELAT");
+            ast_print_traversal(temp->left, indention + 1);
+            ast_print_traversal(temp->right, indention + 1);
 
             break;
 
         case AST_EQUAL:
+            AST_Equal *temp = (AST_Equal*) node;
+
+            ast_indented_println("AST_EQUAL");
+            ast_print_traversal(temp->left, indention + 1);
+            ast_print_traversal(temp->right, indention + 1);
 
             break;
 
         case AST_IDENTIFIER_CONTAINER:
+            ast_indented_println("AST_IDENTIFIER_CONTAINER");
 
             break;
 
         case AST_UNARY:
+            AST_Unary *temp = (AST_Unary*) node;
+
+            ast_indented_println("AST_UNARY");
+            ast_print_traversal(temp->expression, indention + 1);
 
             break;
 
