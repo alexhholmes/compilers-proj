@@ -70,11 +70,11 @@ STRING \"(\\.|[^"\\])*\"
 {FLOAT}                 { yylval.value.float_value = atof(yytext);                                
                           return(FLOAT_CONST); }
 
-                        { append_string_const(yytext);
-{STRING}                  StringValue string_value;
+{STRING}                { StringValue string_value;
                           string_value.val = yytext;
                           string_value.asm_label = string_label_counter;
                           yylval.value.string_value = string_value;
+                          append_string_const(yytext);
                           return(STRING_CONST); }
 
 [ \t]                   /* skip whitespace */

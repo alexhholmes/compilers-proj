@@ -138,7 +138,7 @@ func_arglist: PTR IDENTIFIER
     {
         $2->passing = BY_REFER;
         AST_Identifier_Container *temp = new_ast_identifier_container($2);
-        $$ = new_ast_function_call_params(NULL, 0, temp); /* TODO FIX THIS SHIT RELATED TO PARAMS */
+        $$ = new_ast_function_call_params(NULL, 0, temp); /* TODO FIX THIS SHIT RELATED TO PARAMS*/
     }
     | exp
     {
