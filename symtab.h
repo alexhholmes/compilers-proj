@@ -62,7 +62,11 @@ typedef struct Symbol {
     Param *parameters;
     int num_params;
 
-    // For function call symbol
+    // For arg parameters
+    int passing;
+
+    // For stack offset
+    int offset;
 
     #ifdef DEBUG
     RefList *lines;

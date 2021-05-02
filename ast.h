@@ -122,11 +122,13 @@ typedef struct AST_Const {
     int const_type;
     Value val;
 } AST_Const;
+
 typedef struct AST_Assignment {
     NodeType type;
     Symbol *entry;
     AST_Node *assign_value;
 } AST_Assignment;
+
 typedef struct AST_If {
     NodeType type;
     AST_Node *condition;

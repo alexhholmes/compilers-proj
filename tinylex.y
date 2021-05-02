@@ -136,9 +136,9 @@ type: INT { $$ = INT_TYPE; }
 
 func_arglist: PTR IDENTIFIER
     {
-        $2->passing = REFERENCE;
+        $2->passing = BY_REFER;
         AST_Identifier_Container *temp = new_ast_identifier_container($2);
-        $$ = new_ast_function_call_params(NULL, 0, temp);
+        $$ = new_ast_function_call_params(NULL, 0, temp); /* TODO FIX THIS SHIT RELATED TO PARAMS */
     }
     | exp
     {
@@ -151,7 +151,7 @@ func_arglist: PTR IDENTIFIER
     }
     | PTR IDENTIFIER COMMA func_arglist
     {
-        $2->passing = BY_REF;
+        $2->passing = BY_REFER;
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $4;
         AST_Identifier_Container *temp2 = new_ast_identifier_container($2);
         $$ = new_ast_function_call_params($4, temp->num_params, temp2);

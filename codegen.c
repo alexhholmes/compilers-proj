@@ -1,4 +1,6 @@
 #include "codegen.h"
+#include "symtab.h"
+#include "ast.h"
 
 #include <stdio.h>
 
@@ -75,24 +77,38 @@ void generate_func_deflist(FILE *fp, AST_Function_Declarations *node) {
 }
 
 void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
+    // Store %ebp and set it to %esp value
     PUSH(EBP);
     MOV(ESP, EBP);
 
     AST_Function_Declaration_Params *params = (AST_Function_Declaration_Params*)node->params;
     AST_Var_Declarations *var_decs = (AST_Var_Declarations*)node->var_declarations;
 
+    // Calculate stack pointer offset
     int offset = 0; 
     if (params) offset += params->num_params;
     if (var_decs) offset += var_decs->num_vars; 
     offset *= 4; 
 
+    // Only offset stack pointer if we have declared variables to store on stack
     if (offset != 0) {
         SUB(IMM(offset), ESP);
     }
+
+    // Move params and local vars to stack
+    int curr_var_offset = generate_func_params(fp, params);
+    generate_var_declarations(fp, var_decs, curr_var_offset);
+
+    // Generate statements
+    AST_Statements *statements = (AST_Statements*) node->statements;
+    generate_statements(fp, statements);
 }
 
-void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
+int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
+    int offset = -4;
+
     if (node->params) {
+        // Loop through all function parameters to move from registers to stack
         for (int i = 0; i < node->num_params; i++) {
             if (i > 1) {
                 printf("Lol you thought we'd actually implement this to work with more than 2 params. You wrong.\n");
@@ -100,13 +116,211 @@ void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
             }
 
             Param param = node->params[i];
-            switch (node->params[i].type) {
-
+            switch (param.param_type) {
+                case INT_TYPE:
+                    {
+                        if (i == 0) {
+                            MOV(EDI, MEM(offset, EBP));
+                            offset -= 4;
+                        }
+                        if (i == 1) {
+                            MOV(ESI, MEM(offset, EBP));
+                            offset -= 4;
+                        }
+                    }
+                    break;
+                case FLOAT_TYPE:
+                    {
+                        // TODO
+                    }
+                    break;
+                case CHAR_TYPE:
+                    {
+                        if (i == 0) {
+                            MOV(EDI, MEM(offset, EBP));
+                            offset -= 4;
+                        }
+                        if (i == 1) {
+                            MOV(ESI, MEM(offset, EBP));
+                            offset -= 4;
+                        }
+                    }
+                    break;
+                default:
+                    printf("codegen.c:generate_func_params() unknown type\n");
+                    exit(1);
             }
         }
-        MOV(EDI, MEM(-4, EBP));
+    }
+    return offset;
+}
+
+void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset) {
+    if (node->var_declarations) {
+        // Loop through all variable declarations and move constant values to stack
+        for (int i = 0; i < node->num_vars; i++) {
+            AST_Var_Declaration *var = (AST_Var_Declaration*) node->var_declarations[i];
+            switch (var->data_type) {
+                case INT_TYPE:
+                    {
+                        Symbol *entry = var->entry;
+                        entry->offset = offset;
+                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        offset -= 4;
+                    }
+                    break;
+                case FLOAT_TYPE:
+                    {
+                        // TODO
+                    }
+                    break;
+                case CHAR_TYPE:
+                    {
+                        Symbol *entry = var->entry;
+                        entry->offset = offset;
+                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        offset -= 4;
+                    }
+                    break;
+                default:
+                    printf("codegen.c:generate_var_declarations() unknown type\n");
+                    exit(1);
+            }
+        }
     }
 }
 
-//var declarations maybe save it? 
+void generate_statements(FILE *fp, AST_Statements *node) {
+    for (int i = 0; i < node->num_statements; i++) {
+        AST_Node *statement = node->statements[i];
+        switch (statement->type) {
+            case AST_ASSIGNMENT:
+                {
+                    AST_Assignment *temp = (AST_Assignment*) statement;
+                    generate_assignment(fp, temp);
+                }
+                break;
+            case AST_IF:
+                {
+                    
+                }
+                break;
 
+            case AST_WHILE:
+                {
+
+                }
+                break;
+
+            case AST_FUNC_RETURN:
+                {
+                    AST_Function_Return *temp = (AST_Function_Return*) statement;
+                    generate_function_return(fp, temp);
+                }
+                break;
+
+            case AST_FUNC_CALL:
+                {
+                    AST_Function_Call *temp = (AST_Function_Call*) statement;
+                    generate_function_call(fp, temp);
+                }
+                break;
+
+            case AST_STATEMENTS:
+                {
+                    generate_statements(fp, statement);
+                }
+                break;
+
+            default:
+                    printf("codegen.c:generate_statements() unknown type\n");
+                    exit(1);
+        }
+    }
+}
+
+void generate_assignment(FILE *fp, AST_Assignment* node) {
+    generate_exp(fp, node->assign_value);
+    int offset = node->entry->offset;
+    MOV(EBX, MEM(offset, EBP));
+}
+
+void generate_function_return(FILE *fp, AST_Function_Return* node) {
+    switch (node->return_type) {
+        case INT_TYPE:
+            {
+                generate_exp(fp, node->return_value);
+                MOV(EBX, EAX);
+            }
+            break;
+        case FLOAT_TYPE:
+            {
+                // TODO
+            }
+            break;
+        case CHAR_TYPE:
+            {
+                generate_exp(fp, node->return_value);
+                MOV(EBX, EAX);
+            }
+            break;
+        case VOID_TYPE:
+            // Do nothing
+            break;
+        default:
+            printf("codegen.c:generate_var_declarations() unknown type\n");
+            exit(1);
+    }
+
+    POP(EBP);
+    RET;
+}
+
+void generate_function_call(FILE *fp, AST_Function_Call *node) {
+    char *func_name = node->entry->name;
+
+    // Load params into registers
+    for (int i = 0; i < node->num_params; i++) {
+        if (i > 1) {
+            printf("Lol you thought we'd actually implement this to work with more than 2 function args. You wrong.\n");
+            exit(1);
+        }
+
+        AST_Node *param = node->params[i];
+        switch (param->type) {
+            case AST_IDENTIFIER_CONTAINER:
+                {
+                    AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
+                    
+                    // Put address into arg register
+                    int offset = identifier->entry->offset;
+                    if (i == 0) {
+                        LEA(MEM(offset, EBP), EDI);
+                    } else {
+                        LEA(MEM(offset, EBP), ESI);
+                    }
+                }
+                break;
+            defaut: // Expression
+                {
+                    // Move expression result from %ebx to arg register
+                    generate_exp(fp, param);
+                    
+                    if (i == 0) {
+                        MOV(EBX, EDI);
+                    } else {
+                        MOV(EBX, ESI);
+                    }
+                }
+            
+        }
+    }
+
+    CALL(func_name);
+}
+
+/*
+ * Result will ALWAYS be in %ebx.
+ */
+void generate_exp(FILE *fp, AST_Node* node) {
+}
