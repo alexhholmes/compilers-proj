@@ -13,6 +13,7 @@ void generate_code() {
 
     generate_string_declarations(fp);
     fprintf(fp, "\n");
+    fprintf(fp, "\t.globl\tmain\n");
     generate_functions(fp);
 
     fclose(fp);
@@ -44,7 +45,37 @@ void append_string_const(char *string_value) {
     }
 }
 
-void generate_functions(FILE *fp) {
-    fprintf(fp, "\t.globl\tmain\n");
-    // TODO
+void generate_func_deflist(FILE *fp, AST_Function_Declarations *node) {
+    for (int i = 0; i < node->func_declaration_count; i++) {
+        generate_func_def(fp, node->func_declarations[i]);
+        fprintf(fp, "\n");
+    }
 }
+
+void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
+    fprintf(fp, "pushl\t%%ebp\n");
+    fprintf(fp, "movl\t%%esp, %%ebp\n");
+    AST_Function_Declaration_Params *params = (AST_Function_Declaration_Params*)node->params;
+    AST_Var_Declarations *var_decs = (AST_Var_Declarations*)node->var_declarations;
+    int offset = 0; 
+    if (params) {
+        offset += params->num_params;
+    }
+    if (var_decs) {
+        offset += var_decs->num_vars; 
+    }
+    offset *= 4; 
+    if (offset != 0) {
+        fprintf(fp, "subl\t$%d, %%esp\n", offset);
+    }
+}
+
+void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
+    if (params) {
+        fprintf(fp, "movel\t%%edi, -4(ebp)");
+        fprintf(fp, "movel\t%%edi, -8(ebp)");
+    }
+}
+
+//var declarations maybe save it? 
+
