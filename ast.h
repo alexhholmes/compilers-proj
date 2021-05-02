@@ -79,8 +79,8 @@ typedef enum Sign {
 /* --- Nodes --- */
 typedef struct AST_Node {
     NodeType type;
-    AST_Node *left;
-    AST_Node *right;
+    struct AST_Node *left;
+    struct AST_Node *right;
 } AST_Node;
 
 typedef struct AST_Function_Declarations {
@@ -102,7 +102,7 @@ typedef struct AST_Function_Declaration {
 typedef struct AST_Function_Declaration_Params {
     NodeType type;
     Symbol *entry;
-    AST_Node *params;
+    Param *params;
     int num_params;
 } AST_Function_Declaration_Params;
 
@@ -143,16 +143,14 @@ typedef struct AST_While {
 typedef struct AST_Function_Call {
     NodeType type;
     Symbol *entry;
-    AST_Node *params;
+    AST_Node **params;
     int num_params;
 } AST_Function_Call;
 
 typedef struct AST_Function_Call_Params {
     NodeType type;
-    Param *params;
+    AST_Node **params;
     int num_params;
-    // A call param can be a expression, so we do not use Param
-    // like AST_Function_Declaration_Params.
 } AST_Function_Call_Params;
 
 typedef struct AST_Statements {
@@ -177,7 +175,7 @@ typedef struct AST_Var_Declaration {
 typedef struct AST_Unary {
     NodeType type;
     Sign sign;
-    NodeType *expression;
+    AST_Node *expression;
 } AST_Unary;
 
 typedef struct AST_Arith {
@@ -206,16 +204,18 @@ typedef struct AST_Identifier_Container {
     Symbol *entry;
 } AST_Identifier_Container;
 
-void ast_traversal(AST_Node *node); // TODO Write function in ast.c
+void ast_print_traversal(AST_Node *node, int indention);
+void ast_indented_print(char *node_type, int indention);
+void ast_indented_println(char *node_type, int indention);
 AST_Node *new_ast_node(NodeType type, AST_Node *left, AST_Node *right);
 AST_Node *new_ast_function_declaration_params(Param *parameters, int num_of_params, Param param);
-AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Function_Declaration *func_declaration);
+AST_Node *new_ast_function_declarations(AST_Node **func_declarations, int func_declaration_count, AST_Node *func_declaration);
 AST_Node *new_ast_function_declaration(int return_type, Symbol *entry, AST_Node *params, AST_Node *var_declarations, AST_Node *statements, AST_Node *return_node);
 AST_Node *new_ast_function_return(AST_Node *return_value);
 AST_Node *new_ast_main_return(AST_Node *return_value);
 AST_Node *new_ast_const(int const_type, Value val);
 AST_Node *new_ast_assignment(Symbol *entry, AST_Node *assign_value);
-AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node else_branch);
+AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node *else_branch);
 AST_Node *new_ast_while(AST_Node *condition, AST_Node *while_branch);
 AST_Node *new_ast_function_call(Symbol *entry, AST_Node **params, int num_params);
 AST_Node *new_ast_function_call_params(AST_Node **params, int num_params, AST_Node *param);
@@ -226,6 +226,6 @@ AST_Node *new_ast_arith(ArithOp op, AST_Node *left, AST_Node *right);
 AST_Node *new_ast_relat(RelatOp op, AST_Node *left, AST_Node *right);
 AST_Node *new_ast_equal(EqualOp op, AST_Node *left, AST_Node *right);
 AST_Node *new_identifier_container(Symbol *entry);
-AST_Node *new_ast_unary(Sign sign, NodeType *expression);
+AST_Node *new_ast_unary(Sign sign, AST_Node *expression);
 
 #endif

@@ -93,6 +93,7 @@ AST_Node *temp_return;
 %type <node> st
 %type <data_type> return_type
 %type <node> var_def
+%type <symbol_item> func_def_identifier
 %type <node> var_deflist
 %type <node> func_st_list
 %type <node> func_body
@@ -116,7 +117,7 @@ AST_Node *temp_return;
 
 %% 
 
-program: func_deflist { ast_traversal($1); }
+program: func_deflist { ast_traversal($1, 0); }
     ;
 
 constant: INT_CONST { $$ = new_ast_const(INT_CONST_TYPE, $1); }
@@ -136,7 +137,8 @@ type: INT { $$ = INT_TYPE; }
 func_arglist: PTR IDENTIFIER
     {
         $2->passing = REFERENCE;
-        $$ = new_ast_function_call_params(NULL, 0, $2);
+        AST_Identifier_Container *temp = new_ast_identifier_container($2);
+        $$ = new_ast_function_call_params(NULL, 0, temp);
     }
     | exp
     {
@@ -146,13 +148,13 @@ func_arglist: PTR IDENTIFIER
     {
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $3;
         $$ = new_ast_function_call_params($3, temp->num_params, $1);
-        // TODO Fix a bunch of stuff relating to Params struct being used here
     }
     | PTR IDENTIFIER COMMA func_arglist
     {
-        $2->passing = REFERENCE;
+        $2->passing = BY_REF;
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $4;
-        $$ = new_ast_function_call_params($4, temp->num_params, $2);
+        AST_Identifier_Container *temp2 = new_ast_identifier_container($2);
+        $$ = new_ast_function_call_params($4, temp->num_params, temp2);
     }
     ;
 
@@ -180,7 +182,7 @@ primary_exp: constant { $$ = $1; }
 unary_exp: primary_exp { $$ = $1; }
     | PLUS unary_exp
     {
-        if (unary_exp->type == AST_UNARY) {
+        if ($2->type == AST_UNARY) {
             // Just pass unary with unmodified sign if nested unary
             $$ = $2;
         } else {
@@ -189,7 +191,7 @@ unary_exp: primary_exp { $$ = $1; }
     }
     | MINUS unary_exp
     {
-        if (unary_exp->type == AST_UNARY) {
+        if ($2->type == AST_UNARY) {
             // Only modify sign if nested unary
             AST_Unary *temp = (AST_Unary *) $2;
             temp->sign = NEGATIVE;
@@ -298,10 +300,10 @@ var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT c
     }
     ;
 
-var_deflist: /* epsilon */ { $$ = NULL; }
+var_deflist: /* epsilon */ { $$ = NULL; declared = false; }
     | var_def var_deflist
     {
-        if (var_def) {
+        if ($1) {
             AST_Var_Declarations *temp = (AST_Var_Declarations *) $2;
             $$ = new_ast_var_declarations($2, temp->num_vars, $1);
         }
@@ -316,7 +318,7 @@ func_st_list: ret_st
     | st func_st_list
     {
         // If NULL, is a ret_st or empty_st. Do not add.
-        if (st) {
+        if ($1) {
             AST_Statements *temp = (AST_Statements *) $2;
             new_ast_statements(temp->statements, temp->num_statements, $1);
         }
@@ -342,12 +344,19 @@ func_paramlist: func_param
     }
     | func_paramlist COMMA func_param
     {
-        AST_Function_declaration_Params *temp = (AST_Function_declaration_Params*);
-        $$ = new_ast_function_declaration_params(temp->parameters, temp->num_params, $3);
+        AST_Function_Declaration_Params *temp = (AST_Function_Declaration_Params*) $1;
+        $$ = new_ast_function_declaration_params(temp->params, temp->num_params, $3);
     }
     ;
 
-func_def: return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
+func_def_identifier: { declared = true; } IDENTIFIER
+    {
+        declared = false;
+        $$ = $2;
+    }
+    ;
+
+func_def: return_type func_def_identifier LTPAR func_paramlist RTPAR LTBRACE func_body RTBRACE
     {
         // func_body ($9) split b/c way grammar was designed, requires some sort
         // of node to be returned that stores var_def_list and func_st_list.
@@ -355,17 +364,15 @@ func_def: return_type { declared = true; } IDENTIFIER { declared = false; } LTPA
         // easier to do this than to bubble up.
         // temp_return should be null for VOID function declarations (handled
         // in semantic analysis).
-        $$ = new_ast_function_declaration($1, $3, $6, $9->left, $9->right, temp_return);
+        $$ = new_ast_function_declaration($1, $2, $4, $7->left, $7->right, temp_return);
         temp_return = NULL;
     }
-    | return_type { declared = true; } IDENTIFIER { declared = false; } LTPAR VOID RTPAR LTBRACE func_body RTBRACE
+    | return_type func_def_identifier LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     {
-        $$ = new_ast_function_declaration($1, $3, NULL, %9->left, %9->right, temp_return);
+        $$ = new_ast_function_declaration($1, $2, NULL, %7->left, %7->right, temp_return);
         temp_return = NULL;
     }
     ;
-
-/* programs */
 
 func_deflist: func_deflist func_def 
     {
