@@ -67,6 +67,7 @@ AST_Node *new_ast_function_declaration(int return_type, Symbol *entry, AST_Node 
     node->return_type = return_type;
     node->entry = entry;
     node->params = params;
+    node->var_declarations = var_declarations;
     node->statements = statements;
     node->return_node = return_node;
 
@@ -430,7 +431,7 @@ void ast_print_traversal(AST_Node *node, int indention) {
             {
                 AST_Var_Declaration *temp = (AST_Var_Declaration*) node;
 
-                ast_indented_println("AST_VAR_DECLARATION %d", temp->data_type);
+                ast_indented_println("AST_VAR_DECLARATION", indention);
             }
 
             break;

@@ -15,9 +15,6 @@
 #define EBP "%%ebp"
 #define ESP "%%esp"
 #define EIP "%%esp"
-#define IMM(num) "$"STRINGIFY(num)
-#define MEM(offset, reg) STRINGIFY(offset)"("reg")"
-#define STR(label_num) ".LC"STRINGIFY(label_num)"("EIP")"
 
 #define LABEL(name) fprintf(fp, "%s:\n", name)
 #define PUSH(reg) fprintf(fp, "\tpushl\t"reg"\n")
@@ -135,11 +132,11 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
 
     // Only offset stack pointer if we have declared variables to store on stack
     if (offset != 0) {
-        ASM_SUB(IMM(offset), ESP);
+        fprintf(fp, "\tsubl\t$%d, "ESP"\n", offset);
     }
 
     // Move params and local vars to stack
-    int curr_var_offset = 0;
+    int curr_var_offset = -4;
     if (params) {
         curr_var_offset = generate_func_params(fp, params);
     }
@@ -169,11 +166,11 @@ int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
                 case INT_TYPE:
                     {
                         if (i == 0) {
-                            MOV(EDI, MEM(offset, EBP));
+                            fprintf(fp, "\tmovl\t"EDI", %d("EBP")\n", offset);
                             offset -= 4;
                         }
                         if (i == 1) {
-                            MOV(ESI, MEM(offset, EBP));
+                            fprintf(fp, "\tmovl\t"ESI", %d("EBP")\n", offset);
                             offset -= 4;
                         }
                     }
@@ -186,11 +183,11 @@ int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
                 case CHAR_TYPE:
                     {
                         if (i == 0) {
-                            MOV(EDI, MEM(offset, EBP));
+                            fprintf(fp, "\tmovl\t"EDI", %d("EBP")\n", offset);
                             offset -= 4;
                         }
                         if (i == 1) {
-                            MOV(ESI, MEM(offset, EBP));
+                            fprintf(fp, "\tmovl\t"ESI", %d("EBP")\n", offset);
                             offset -= 4;
                         }
                     }
@@ -213,7 +210,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        fprintf(fp, "\tmovl\t$%d, %d("EBP")\n", entry->value.int_val, offset);
                         offset -= 4;
                     }
                     break;
@@ -226,7 +223,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        fprintf(fp, "\tmovl\t$%d, %d("EBP")\n", entry->value.char_val, offset);
                         offset -= 4;
                     }
                     break;
@@ -297,7 +294,7 @@ void generate_statement(FILE *fp, AST_Node *statement) {
 void generate_assignment(FILE *fp, AST_Assignment *node) {
     generate_exp(fp, node->assign_value);
     int offset = node->entry->offset;
-    MOV(EBX, MEM(offset, EBP));
+    fprintf(fp, "\tmovl\t"EBX", %d("EBP")\n", offset);
 }
 
 void generate_if(FILE *fp, AST_If *node) {
@@ -478,9 +475,9 @@ void generate_function_call(FILE *fp, AST_Function_Call *node) {
             // Put address into arg register
             int offset = identifier->entry->offset;
             if (i == 0) {
-                LEA(MEM(offset, EBP), EDI);
+                fprintf(fp, "\tleal\t%d("EBP"), "EDI"\n", offset);
             } else {
-                LEA(MEM(offset, EBP), ESI);
+                fprintf(fp, "\tleal\t%d("EBP"), "ESI"\n", offset);
             }
         } else {
             // Move expression result from %ebx to arg register
@@ -502,7 +499,7 @@ void generate_const(FILE *fp, AST_Const *node) {
         case INT_CONST_TYPE:
             {
                 int num = node->val.int_value;
-                MOV(IMM(num), EBX);
+                fprintf(fp, "\tmovl\t$%d, "EBX"\n", num);
             }
             break;
 
@@ -515,14 +512,14 @@ void generate_const(FILE *fp, AST_Const *node) {
         case CHAR_CONST_TYPE:
             {
                 char val = node->val.char_value;
-                MOV(IMM(val), EBX);
+                fprintf(fp, "\tmovl\t$%d, "EBX"\n", val);
             }
             break;
 
         case STRING_CONST_TYPE:
             {
                 int asm_label = node->val.string_value.asm_label;
-                LEA(STR(asm_label), EBX);
+                // fprintf(fp, "\tleal\t%d("EBP"), "EBX"\n", asm_label);
                 //TODO
             }
             break;
@@ -613,7 +610,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
                 // Load var from stack to %ebx
                 AST_Identifier_Container *temp = (AST_Identifier_Container*) node;
                 int offset = temp->entry->offset;
-                MOV(MEM(offset, EBP), EBX);
+                fprintf(fp, "\tmovl\t%d("EBP"), "EBX"\n", offset);
             }
             break;
 
@@ -698,7 +695,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
                 if (temp->sign == NEGATIVE) {
                     NEG(EBX);
                 }
-                CMP(EBX, IMM(0));
+                fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
                 return CMP_UNDEFINED; 
             }
             break;
@@ -710,14 +707,14 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
                 int offset = temp->entry->offset;
 
                 if (type == INT_TYPE) {
-                    MOV(MEM(offset, EBP), EBX);
-                    CMP(EBX, IMM(0));
+                    fprintf(fp, "\tmovl\t%d("EBP"), "EBX"\n", offset);
+                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
                     return CMP_UNDEFINED; 
                 } else if (type == FLOAT_TYPE) {
                     // TODO
                 } else if (type == CHAR_TYPE) {
-                    MOV(MEM(offset, EBP), EBX);
-                    CMP(EBX, IMM(0));
+                    fprintf(fp, "\tmovl\t%d("EBP"), "EBX"\n", offset);
+                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
                     return CMP_UNDEFINED; 
                 }
             }
@@ -740,15 +737,15 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
 
                 if (type == INT_CONST_TYPE) {
                     int val = temp->val.int_value;
-                    MOV(IMM(val), EBX);
-                    CMP(EBX, IMM(0));
+                    fprintf(fp, "\tmovl\t$%d, "EBX"\n", val);
+                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
                     return CMP_UNDEFINED;
                 } else if (type == FLOAT_CONST_TYPE) {
                     // TODO
                 } else if (type == CHAR_CONST_TYPE) {
                     char val = temp->val.char_value;
-                    MOV(IMM(val), EBX);
-                    CMP(EBX, IMM(0));
+                    fprintf(fp, "\tmovl\t$%d, "EBX"\n", val);
+                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
                     return CMP_UNDEFINED;
                 }
                 return CMP_UNDEFINED;

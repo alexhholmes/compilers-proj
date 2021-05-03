@@ -310,6 +310,15 @@ return_type: VOID { $$ = VOID_TYPE; }
 var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT constant SEMICOLON
     {
         $3->token_type = $1;
+        AST_Const *temp = (AST_Const *) $6;
+        
+        if ($1 == INT_TYPE) {
+            $3->value.int_val = temp->val.int_value;
+        } else if ($1 == CHAR_TYPE) {
+            $3->value.char_val = temp->val.char_value;
+        } else if ($1 == FLOAT_TYPE) {
+            $3->value.float_val = temp->val.float_value;
+        }
         $$ = new_ast_var_declaration($3, $3->token_type);
     }
     ;
@@ -317,9 +326,11 @@ var_def: type { declared = true; } IDENTIFIER { declared = false; } ASSIGNMENT c
 var_deflist: /* epsilon */ { $$ = NULL; declared = false; }
     | var_def var_deflist
     {
-        if ($1) {
+        if ($2) {
             AST_Var_Declarations *temp = (AST_Var_Declarations *) $2;
             $$ = new_ast_var_declarations(temp->var_declarations, temp->num_vars, $1);
+        } else {
+            $$ = new_ast_var_declarations(NULL, 0, $1);
         }
     }
     ;
