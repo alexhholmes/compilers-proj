@@ -194,7 +194,11 @@ unary_exp: primary_exp { $$ = $1; }
         if ($2->type == AST_UNARY) {
             // Only modify sign if nested unary
             AST_Unary *temp = (AST_Unary *) $2;
-            temp->sign = NEGATIVE;
+            if (temp->sign == NEGATIVE) {
+                temp->sign = POSITIVE;  
+            } else {
+                temp->sign = NEGATIVE;
+            }
             $$ = temp;
         } else {
             // Create new unary that holds primary_exp

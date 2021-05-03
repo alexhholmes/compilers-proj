@@ -20,6 +20,7 @@
 #define LABEL(name) fprintf(fp, "%s:\n", name)
 #define PUSH(reg) fprintf(fp, "\tpushl\t"reg"\n")
 #define POP(reg) fprintf(fp, "\tpopl\t"reg"\n")
+#define NEG(reg) fprintf(fp, "\tnegl\t"reg"\n")
 #define CALL(func) fprintf(fp, "\tcall\t%s\n", func)
 #define RET fprintf(fp, "\tret\n")
 #define MOV(src, dest) fprintf(fp, "\tmovl\t"src", "dest"\n")
@@ -556,17 +557,31 @@ void generate_arith(FILE *fp, AST_Arith *node) {
     }
 }
 
+void generate_equal(FILE *fp, AST_Equal *node) {
+    generate_exp(fp, node->right);
+    PUSH(EBX);
+    generate_exp(fp, node->left);
+    POP(ECX);
+
+    if (node->op == EQ) {
+        CMP(EBX, ECX);
+    } else {
+        //TODO
+    }
+}
+
 void generate_exp(FILE *fp, AST_Node *node) {
     switch (node->type) {
         AST_EQUAL:
             {
-                
+                AST_Equal *temp = (AST_Equal*) node; 
+                //TODO
             }
             break;
 
         AST_RELAT:
             {
-                
+                //TODO
             }
             break;
 
@@ -579,7 +594,11 @@ void generate_exp(FILE *fp, AST_Node *node) {
 
         AST_UNARY:
             {
-                
+                AST_Unary *temp = (AST_Unary*) node;
+                generate_exp(fp, temp->expression);
+                if (temp->sign == NEGATIVE) {
+                    NEG(EBX);
+                }
             }
             break;
 
@@ -620,31 +639,68 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
     switch (node->type) {
         AST_EQUAL:
             {
-                
+                AST_Equal *temp = (AST_Equal*) node; 
+                generate_exp(fp, temp->right);
+                PUSH(EBX);
+                generate_exp(fp, temp->left);
+                POP(ECX);
+                CMP(EBX, ECX);
+                if (temp->op == EQ) {
+                    return CMP_EQUAL; 
+                } else {
+                    return CMP_NOT_EQUAL;
+                }
             }
             break;
 
         AST_RELAT:
             {
-
+                AST_Relat *temp = (AST_Relat*) node; 
+                generate_exp(fp, temp->right);
+                PUSH(EBX);
+                generate_exp(fp, temp->left);
+                POP(ECX);
+                CMP(EBX, ECX);
+                if (temp->op == GREATER_EQUAL) {
+                    return CMP_GTE;  
+                } else if (temp->op == GREATER) {
+                    return CMP_GT;
+                } else if (temp->op == LESS) {
+                    return CMP_LT;
+                } else {
+                    return CMP_LTE;
+                }
             }
             break;
 
         AST_ARITH:
             {
-
+                AST_Arith *temp = (AST_Arith*) node;
+                generate_exp(fp, temp->right);
+                PUSH(EBX);
+                generate_exp(fp, temp->left);
+                POP(ECX); 
+                CMP(EBX, ECX); 
+                return CMP_UNDEFINED;
             }
             break;
 
         AST_UNARY:
             {
-
+                AST_Unary *temp = (AST_Unary*) node; 
+                generate_exp(fp, temp->expression);
+                if (temp->sign == NEGATIVE) {
+                    NEG(EBX);
+                }
+                CMP(EBX, IMM(0));
+                return CMP_UNDEFINED; 
             }
             break;
 
         AST_IDENTIFIER_CONTAINER:
             {
-
+                AST_Identifier_Container *temp = (AST_Identifier_Container*) node; 
+                //TODO
             }
             break;
 
@@ -661,6 +717,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
         AST_CONST:
             {
                 AST_Const *temp = 
+                //TODO
             }
             break;
 
