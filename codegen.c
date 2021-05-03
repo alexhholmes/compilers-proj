@@ -575,7 +575,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
         AST_EQUAL:
             {
                 AST_Equal *temp = (AST_Equal*) node; 
-                //TODO
+                // TODO
             }
             break;
 
@@ -700,7 +700,20 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
         AST_IDENTIFIER_CONTAINER:
             {
                 AST_Identifier_Container *temp = (AST_Identifier_Container*) node; 
-                //TODO
+                int type = temp->entry->token_type;
+                int offset = temp->entry->offset;
+
+                if (type == INT_TYPE) {
+                    MOV(MEM(offset, EBP), EBX);
+                    CMP(EBX, IMM(0));
+                    return CMP_UNDEFINED; 
+                } else if (type == FLOAT_TYPE) {
+                    // TODO
+                } else if (type == CHAR_TYPE) {
+                    MOV(MEM(offset, EBP), EBX);
+                    CMP(EBX, IMM(0));
+                    return CMP_UNDEFINED; 
+                }
             }
             break;
 
@@ -716,8 +729,23 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
 
         AST_CONST:
             {
-                AST_Const *temp = 
-                //TODO
+                AST_Const *temp = (AST_Const*) node;
+                int type = temp->const_type;
+
+                if (type == INT_CONST_TYPE) {
+                    int val = temp->val.int_value;
+                    MOV(IMM(val), EBX);
+                    CMP(EBX, IMM(0));
+                    return CMP_UNDEFINED;
+                } else if (type == FLOAT_CONST_TYPE) {
+                    // TODO
+                } else if (type == CHAR_CONST_TYPE) {
+                    char val = temp->val.char_value;
+                    MOV(IMM(val), EBX);
+                    CMP(EBX, IMM(0));
+                    return CMP_UNDEFINED;
+                }
+                return CMP_UNDEFINED;
             }
             break;
 
