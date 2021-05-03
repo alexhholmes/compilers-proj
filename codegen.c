@@ -15,30 +15,24 @@
 #define EBP "%%ebp"
 #define ESP "%%esp"
 #define EIP "%%esp"
-// #define MEM(offset, reg) STRINGIFY(offset)"("reg")"
+#define IMM(num) "$"STRINGIFY(num)
+#define MEM(offset, reg) STRINGIFY(offset)"("reg")"
 #define STR(label_num) ".LC"STRINGIFY(label_num)"("EIP")"
 
 #define LABEL(name) fprintf(fp, "%s:\n", name)
 #define PUSH(reg) fprintf(fp, "\tpushl\t"reg"\n")
-#define PUSHI(imm) fprintf(fp, "\tpushl\t$%d\n", imm)
 #define POP(reg) fprintf(fp, "\tpopl\t"reg"\n")
 #define NEG(reg) fprintf(fp, "\tnegl\t"reg"\n")
 #define CALL(func) fprintf(fp, "\tcall\t%s\n", func)
 #define RET fprintf(fp, "\tret\n")
 #define MOV(src, dest) fprintf(fp, "\tmovl\t"src", "dest"\n")
-#define MOVI(imm, dest) fprintf(fp, "\tmovl\t$%d, "dest"\n", imm)
 #define LEA(arg1, arg2) fprintf(fp, "\tleal\t"arg1", "arg2"\n")
 #define ASM_ADD(arg1, arg2) fprintf(fp, "\taddl\t"arg1", "arg2"\n")
-#define ASM_ADDI(imm, reg) fprintf(fp, "\taddl\t$%d, "reg"\n", imm)
 #define ASM_SUB(arg1, arg2) fprintf(fp, "\tsubl\t"arg1", "arg2"\n")
-#define ASM_SUBI(imm, reg) fprintf(fp, "\tsubl\t$%d, "reg"\n", imm)
 #define ASM_MUL(arg1, arg2) fprintf(fp, "\timull\t"arg1", "arg2"\n")
-#define ASM_MULI(imm, reg) fprintf(fp, "\tmull\t$%d, "reg"\n", imm)
 #define ASM_DIV(arg1, arg2) fprintf(fp, "\tidivl\t"arg1", "arg2"\n")
-#define ASM_DIVI(imm, reg) fprintf(fp, "\tdivl\t$%d, "reg"\n", imm)
 
 #define CMP(arg1, arg2) fprintf(fp, "\tcmpl\t"arg1", "arg2"\n")
-#define CMPI(reg, imm) fprintf(fp, "\tcmpl\t"reg", %d\n", imm)
 #define JMP(label) fprintf(fp, "\tjmp\t"label"\n")
 #define JE(label) fprintf(fp, "\tje\t"label"\n")
 #define JNE(label) fprintf(fp, "\tjne\t"label"\n")
@@ -71,7 +65,7 @@ int string_label_counter = 0;
 
 void generate_code() {
     FILE *fp;
-    fp = fopen("output.asm", "w");
+    fp = fopen("output.s", "w");
 
     if (fp == NULL) {
         printf("File %s cannot be opened! Exiting...", "output.asm");
@@ -219,7 +213,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOVI(IMM(entry->value.int_val), MEM(offset, EBP));
+                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
                         offset -= 4;
                     }
                     break;
@@ -232,7 +226,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOVI(entry->value.int_val, MEM(offset, EBP));
+                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
                         offset -= 4;
                     }
                     break;
@@ -508,7 +502,7 @@ void generate_const(FILE *fp, AST_Const *node) {
         case INT_CONST_TYPE:
             {
                 int num = node->val.int_value;
-                MOVI(num, EBX);
+                MOV(IMM(num), EBX);
             }
             break;
 
@@ -521,7 +515,7 @@ void generate_const(FILE *fp, AST_Const *node) {
         case CHAR_CONST_TYPE:
             {
                 char val = node->val.char_value;
-                MOVI(val, EBX);
+                MOV(IMM(val), EBX);
             }
             break;
 
