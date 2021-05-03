@@ -1,8 +1,8 @@
 %{
-#include "tinylex.tab.h"
 #include "symtab.h"
-#include "ast.h"
 #include "codegen.h"
+#include "ast.h"
+#include "tinylex.tab.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,39 +12,41 @@ extern int num_line;
 extern bool declared;
 extern int yylex();
 extern void yyerror(char *s);
+
+AST_Node *ast_head;
 AST_Node *temp_return;
 %}
 
 /* Keywords */   
-%token <val> IF 
-%token <val> ELSE
-%token <val> WHILE   
-%token <val> CHAR
-%token <val> INT
-%token <val> FLOAT
-%token <val> RETURN
-%token <val> VOID
+%token <value> IF 
+%token <value> ELSE
+%token <value> WHILE   
+%token <value> CHAR
+%token <value> INT
+%token <value> FLOAT
+%token <value> RETURN
+%token <value> VOID
 
 /* Pairs of tokens */
-%token <val> LTPAR     /* ( */
-%token <val> RTPAR     /* ) */
-%token <val> LTBRACE   /* { */
-%token <val> RTBRACE   /* } */    
+%token <value> LTPAR     /* ( */
+%token <value> RTPAR     /* ) */
+%token <value> LTBRACE   /* { */
+%token <value> RTBRACE   /* } */    
 
 /* Basic separators */
-%token <val> SEMICOLON
-%token <val> COMMA
+%token <value> SEMICOLON
+%token <value> COMMA
 
 /* Math operators */
-%token <val> PLUS
-%token <val> MINUS
-%token <val> MULTIPLY
-%token <val> DIVIDE
+%token <value> PLUS
+%token <value> MINUS
+%token <value> MULTIPLY
+%token <value> DIVIDE
 
 /* Equality and difference */
-%token <val> ASSIGNMENT  /* = */
-%token <val> EQUAL       /* == */
-%token <val> NOT_EQUAL   /* != */
+%token <value> ASSIGNMENT  /* = */
+%token <value> EQUAL       /* == */
+%token <value> NOT_EQUAL   /* != */
 
 /* Logical operators */
 %token GT      /* > */
@@ -55,10 +57,10 @@ AST_Node *temp_return;
 %token PTR     /* & */
 
 %token <symbol_item> IDENTIFIER
-%token <val> CHAR_CONST
-%token <val> INT_CONST
-%token <val> FLOAT_CONST
-%token <val> STRING_CONST
+%token <value> CHAR_CONST
+%token <value> INT_CONST
+%token <value> FLOAT_CONST
+%token <value> STRING_CONST
 
 %left ASSIGNMENT
 %left EQUAL NOT_EQUAL
@@ -97,7 +99,7 @@ AST_Node *temp_return;
 %type <node> var_deflist
 %type <node> func_st_list
 %type <node> func_body
-%type <node> func_param
+%type <param> func_param
 %type <node> func_paramlist
 %type <node> func_def
 %type <node> func_deflist
@@ -117,7 +119,15 @@ AST_Node *temp_return;
 
 %% 
 
-program: func_deflist { ast_traversal($1, 0); }
+program: func_deflist
+    {
+        ast_head = $1;
+        #ifdef DEBUG
+        ast_print_traversal(ast_head, 0);
+        print_symtab();
+        #endif
+        generate_code();
+    }
     ;
 
 constant: INT_CONST { $$ = new_ast_const(INT_CONST_TYPE, $1); }
@@ -137,7 +147,7 @@ type: INT { $$ = INT_TYPE; }
 func_arglist: PTR IDENTIFIER
     {
         $2->passing = BY_REFER;
-        AST_Identifier_Container *temp = new_ast_identifier_container($2);
+        AST_Node *temp = new_identifier_container($2);
         $$ = new_ast_function_call_params(NULL, 0, temp); /* TODO FIX THIS SHIT RELATED TO PARAMS*/
     }
     | exp
@@ -147,21 +157,21 @@ func_arglist: PTR IDENTIFIER
     | exp COMMA func_arglist
     {
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $3;
-        $$ = new_ast_function_call_params($3, temp->num_params, $1);
+        $$ = new_ast_function_call_params(temp->params, temp->num_params, $1);
     }
     | PTR IDENTIFIER COMMA func_arglist
     {
         $2->passing = BY_REFER;
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $4;
-        AST_Identifier_Container *temp2 = new_ast_identifier_container($2);
-        $$ = new_ast_function_call_params($4, temp->num_params, temp2);
+        AST_Node *temp2 = new_identifier_container($2);
+        $$ = new_ast_function_call_params(temp->params, temp->num_params, temp2);
     }
     ;
 
 func_call: IDENTIFIER LTPAR func_arglist RTPAR
     {
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $3;
-        $$ = new_ast_function_call($1, $3, temp->num_params);
+        $$ = new_ast_function_call($1, temp->params, temp->num_params);
     }
     | IDENTIFIER LTPAR RTPAR
     {
@@ -199,7 +209,7 @@ unary_exp: primary_exp { $$ = $1; }
             } else {
                 temp->sign = NEGATIVE;
             }
-            $$ = temp;
+            $$ = (AST_Node*) temp;
         } else {
             // Create new unary that holds primary_exp
             $$ = new_ast_unary(NEGATIVE, $2);
@@ -268,7 +278,7 @@ st_list: /* epsilon */ { $$ = NULL; }
         // Check not Null
         if ($1) {
             AST_Statements *temp = (AST_Statements *) $2;
-            $$ = new_ast_statements($2, temp->num_statements, $1);
+            $$ = new_ast_statements(temp->statements, temp->num_statements, $1);
         }
     }
     ;
@@ -309,7 +319,7 @@ var_deflist: /* epsilon */ { $$ = NULL; declared = false; }
     {
         if ($1) {
             AST_Var_Declarations *temp = (AST_Var_Declarations *) $2;
-            $$ = new_ast_var_declarations($2, temp->num_vars, $1);
+            $$ = new_ast_var_declarations(temp->var_declarations, temp->num_vars, $1);
         }
     }
     ;
@@ -369,11 +379,13 @@ func_def: return_type func_def_identifier LTPAR func_paramlist RTPAR LTBRACE fun
         // temp_return should be null for VOID function declarations (handled
         // in semantic analysis).
         $$ = new_ast_function_declaration($1, $2, $4, $7->left, $7->right, temp_return);
+        ((AST_Function_Return*) temp_return)->return_type = $1;
         temp_return = NULL;
     }
     | return_type func_def_identifier LTPAR VOID RTPAR LTBRACE func_body RTBRACE
     {
-        $$ = new_ast_function_declaration($1, $2, NULL, %7->left, %7->right, temp_return);
+        $$ = new_ast_function_declaration($1, $2, NULL, $7->left, $7->right, temp_return);
+        ((AST_Function_Return*) temp_return)->return_type = $1;
         temp_return = NULL;
     }
     ;
@@ -403,10 +415,6 @@ int yywrap() {
 
 int main(void) {
     yyparse();
-
-    #ifdef DEBUG
-    print_symtab();
-    #endif
 
     return 0;
 }

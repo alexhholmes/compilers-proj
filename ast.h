@@ -37,19 +37,22 @@ typedef enum NodeType {
     AST_IDENTIFIER_CONTAINER,
 } NodeType;
 
+typedef union Value Value;
+typedef struct StringValue StringValue;
+
+struct StringValue {
+    char *val;
+    // The LC#: label for codegen
+    int asm_label;
+};
+
 /* --- Value Union --- */
-typedef union Value {
+union Value {
     int int_value;
     char char_value;
     float float_value;
     StringValue string_value;
-} Value;
-
-typedef struct StringValue {
-    char *val;
-    // The LC#: label for codegen
-    int asm_label;
-} StringValue;
+};
 
 /* --- Operator Types --- */
 typedef enum ArithOp {

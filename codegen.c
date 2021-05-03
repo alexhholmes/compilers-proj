@@ -1,8 +1,10 @@
 #include "codegen.h"
 #include "symtab.h"
 #include "ast.h"
+#include "tinylex.tab.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define EAX "%%eax"
 #define EBX "%%ebx"
@@ -13,24 +15,30 @@
 #define EBP "%%ebp"
 #define ESP "%%esp"
 #define EIP "%%esp"
-#define IMM(num) "$"STRINGIFY(num)
-#define MEM(offset, reg) STRINGIFY(offset)"("reg")"
+// #define MEM(offset, reg) STRINGIFY(offset)"("reg")"
 #define STR(label_num) ".LC"STRINGIFY(label_num)"("EIP")"
 
 #define LABEL(name) fprintf(fp, "%s:\n", name)
 #define PUSH(reg) fprintf(fp, "\tpushl\t"reg"\n")
+#define PUSHI(imm) fprintf(fp, "\tpushl\t$%d\n", imm)
 #define POP(reg) fprintf(fp, "\tpopl\t"reg"\n")
 #define NEG(reg) fprintf(fp, "\tnegl\t"reg"\n")
 #define CALL(func) fprintf(fp, "\tcall\t%s\n", func)
 #define RET fprintf(fp, "\tret\n")
 #define MOV(src, dest) fprintf(fp, "\tmovl\t"src", "dest"\n")
+#define MOVI(imm, dest) fprintf(fp, "\tmovl\t$%d, "dest"\n", imm)
 #define LEA(arg1, arg2) fprintf(fp, "\tleal\t"arg1", "arg2"\n")
 #define ASM_ADD(arg1, arg2) fprintf(fp, "\taddl\t"arg1", "arg2"\n")
+#define ASM_ADDI(imm, reg) fprintf(fp, "\taddl\t$%d, "reg"\n", imm)
 #define ASM_SUB(arg1, arg2) fprintf(fp, "\tsubl\t"arg1", "arg2"\n")
+#define ASM_SUBI(imm, reg) fprintf(fp, "\tsubl\t$%d, "reg"\n", imm)
 #define ASM_MUL(arg1, arg2) fprintf(fp, "\timull\t"arg1", "arg2"\n")
+#define ASM_MULI(imm, reg) fprintf(fp, "\tmull\t$%d, "reg"\n", imm)
 #define ASM_DIV(arg1, arg2) fprintf(fp, "\tidivl\t"arg1", "arg2"\n")
+#define ASM_DIVI(imm, reg) fprintf(fp, "\tdivl\t$%d, "reg"\n", imm)
 
 #define CMP(arg1, arg2) fprintf(fp, "\tcmpl\t"arg1", "arg2"\n")
+#define CMPI(reg, imm) fprintf(fp, "\tcmpl\t"reg", %d\n", imm)
 #define JMP(label) fprintf(fp, "\tjmp\t"label"\n")
 #define JE(label) fprintf(fp, "\tje\t"label"\n")
 #define JNE(label) fprintf(fp, "\tjne\t"label"\n")
@@ -56,21 +64,25 @@ macros I made. They are my babies. My beautiful creations. They are my everythin
 I am nothing without them. My brain grew 3x in size when I made them from scratch.
 Bask in their glory for their words are that of the holy scripture. */
 
+extern AST_Node *ast_head;
+
 static int label_count = 0;
+int string_label_counter = 0;
 
 void generate_code() {
-    const char *file_name = "output.asm";
-    FILE *fp = fopen(file_name, 'w');
+    FILE *fp;
+    fp = fopen("output.asm", "w");
 
-    if (!fp) {
-        printf("File %s cannot be opened! Exiting...", file_name);
+    if (fp == NULL) {
+        printf("File %s cannot be opened! Exiting...", "output.asm");
         exit(1);
     }
 
     generate_string_declarations(fp);
     fprintf(fp, "\n");
     fprintf(fp, "\t.globl\tmain\n");
-    generate_functions(fp);
+    AST_Function_Declarations *node = (AST_Function_Declarations*) ast_head;
+    generate_func_deflist(fp, node);
 
     fclose(fp);
 }
@@ -95,7 +107,7 @@ void append_string_const(char *string_value) {
         string_consts[0] = string_value;
         string_label_counter++;
     } else {
-        string_consts = (char**) remalloc(string_consts, (string_label_counter + 1) * sizeof(char*));
+        string_consts = (char**) realloc(string_consts, (string_label_counter + 1) * sizeof(char*));
         string_consts[string_label_counter] = string_value;
         string_label_counter++;
     }
@@ -103,13 +115,15 @@ void append_string_const(char *string_value) {
 
 void generate_func_deflist(FILE *fp, AST_Function_Declarations *node) {
     for (int i = 0; i < node->func_declaration_count; i++) {
-        generate_func_def(fp, node->func_declarations[i]);
+        AST_Function_Declaration *temp = (AST_Function_Declaration*) node->func_declarations[i];
+        generate_func_def(fp, temp);
         fprintf(fp, "\n");
     }
 }
 
 void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     // Function label
+    char *name = node->entry->name;
     LABEL(node->entry->name);
 
     // Store %ebp and set it to %esp value
@@ -127,11 +141,14 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
 
     // Only offset stack pointer if we have declared variables to store on stack
     if (offset != 0) {
-        SUB(IMM(offset), ESP);
+        ASM_SUB(IMM(offset), ESP);
     }
 
     // Move params and local vars to stack
-    int curr_var_offset = generate_func_params(fp, params);
+    int curr_var_offset = 0;
+    if (params) {
+        curr_var_offset = generate_func_params(fp, params);
+    }
     generate_var_declarations(fp, var_decs, curr_var_offset);
 
     // Generate statements
@@ -139,7 +156,8 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     generate_statements(fp, statements);
 
     // Return statement
-    generate_function_return(fp, node->return_node);
+    AST_Function_Return *return_node = (AST_Function_Return*) node->return_node;
+    generate_function_return(fp, return_node);
 }
 
 int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
@@ -192,7 +210,7 @@ int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
 }
 
 void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset) {
-    if (node->var_declarations) {
+    if (node && node->var_declarations) {
         // Loop through all variable declarations and move constant values to stack
         for (int i = 0; i < node->num_vars; i++) {
             AST_Var_Declaration *var = (AST_Var_Declaration*) node->var_declarations[i];
@@ -201,7 +219,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        MOVI(IMM(entry->value.int_val), MEM(offset, EBP));
                         offset -= 4;
                     }
                     break;
@@ -214,7 +232,7 @@ void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset)
                     {
                         Symbol *entry = var->entry;
                         entry->offset = offset;
-                        MOV(IMM(entry->value.int_val), MEM(offset, EBP));
+                        MOVI(entry->value.int_val, MEM(offset, EBP));
                         offset -= 4;
                     }
                     break;
@@ -272,7 +290,8 @@ void generate_statement(FILE *fp, AST_Node *statement) {
 
         case AST_STATEMENTS:
             {
-                generate_statements(fp, statement);
+                AST_Statements *temp = (AST_Statements*) statement;
+                generate_statements(fp, temp);
             }
             break;
 
@@ -439,7 +458,7 @@ void generate_function_return(FILE *fp, AST_Function_Return* node) {
                 // Do nothing
                 break;
             default:
-                fail(fp, "codegen.c:generate_var_declarations() unknown type");
+                fail(fp, "codegen.c:generate_function_return() unknown type");
         }
     }
 
@@ -459,32 +478,25 @@ void generate_function_call(FILE *fp, AST_Function_Call *node) {
         }
 
         AST_Node *param = node->params[i];
-        switch (param->type) {
-            case AST_IDENTIFIER_CONTAINER:
-                {
-                    AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
-                    
-                    // Put address into arg register
-                    int offset = identifier->entry->offset;
-                    if (i == 0) {
-                        LEA(MEM(offset, EBP), EDI);
-                    } else {
-                        LEA(MEM(offset, EBP), ESI);
-                    }
-                }
-                break;
-            defaut: // Expression
-                {
-                    // Move expression result from %ebx to arg register
-                    generate_exp(fp, param);
-                    
-                    if (i == 0) {
-                        MOV(EBX, EDI);
-                    } else {
-                        MOV(EBX, ESI);
-                    }
-                }
+        if (param->type == AST_IDENTIFIER_CONTAINER) {
+            AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
             
+            // Put address into arg register
+            int offset = identifier->entry->offset;
+            if (i == 0) {
+                LEA(MEM(offset, EBP), EDI);
+            } else {
+                LEA(MEM(offset, EBP), ESI);
+            }
+        } else {
+            // Move expression result from %ebx to arg register
+            generate_exp(fp, param);
+            
+            if (i == 0) {
+                MOV(EBX, EDI);
+            } else {
+                MOV(EBX, ESI);
+            }
         }
     }
 
@@ -496,7 +508,7 @@ void generate_const(FILE *fp, AST_Const *node) {
         case INT_CONST_TYPE:
             {
                 int num = node->val.int_value;
-                MOV(IMM(num), EBX);
+                MOVI(num, EBX);
             }
             break;
 
@@ -509,7 +521,7 @@ void generate_const(FILE *fp, AST_Const *node) {
         case CHAR_CONST_TYPE:
             {
                 char val = node->val.char_value;
-                MOV(IMM(val), EBX);
+                MOVI(val, EBX);
             }
             break;
 
@@ -531,25 +543,25 @@ void generate_arith(FILE *fp, AST_Arith *node) {
     POP(ECX);
 
     switch (node->op) {
-        ADD:
+        case ADD:
             {
                 ASM_ADD(ECX, EBX);
             }
             break;
 
-        SUB:
+        case SUB:
             {
                 ASM_SUB(ECX, EBX);
             }
             break;
 
-        MUL:
+        case MUL:
             {
                 ASM_MUL(ECX, EBX);
             }
             break;
 
-        DIV:
+        case DIV:
             {
                 ASM_DIV(ECX, EBX);
             }
@@ -572,27 +584,27 @@ void generate_equal(FILE *fp, AST_Equal *node) {
 
 void generate_exp(FILE *fp, AST_Node *node) {
     switch (node->type) {
-        AST_EQUAL:
+        case AST_EQUAL:
             {
                 AST_Equal *temp = (AST_Equal*) node; 
                 // TODO
             }
             break;
 
-        AST_RELAT:
+        case AST_RELAT:
             {
                 //TODO
             }
             break;
 
-        AST_ARITH:
+        case AST_ARITH:
             {
                 AST_Arith *temp = (AST_Arith*) node;
                 generate_arith(fp, temp);
             }
             break;
 
-        AST_UNARY:
+        case AST_UNARY:
             {
                 AST_Unary *temp = (AST_Unary*) node;
                 generate_exp(fp, temp->expression);
@@ -602,7 +614,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_IDENTIFIER_CONTAINER:
+        case AST_IDENTIFIER_CONTAINER:
             {
                 // Load var from stack to %ebx
                 AST_Identifier_Container *temp = (AST_Identifier_Container*) node;
@@ -611,7 +623,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_FUNC_CALL:
+        case AST_FUNC_CALL:
             {
                 AST_Function_Call *temp = (AST_Function_Call*) node;
                 generate_function_call(fp, temp);
@@ -620,7 +632,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_CONST:
+        case AST_CONST:
             {
                 AST_Const *temp = (AST_Const*) node;
                 generate_const(fp, temp);
@@ -637,7 +649,7 @@ void generate_exp(FILE *fp, AST_Node *node) {
  */
 int generate_exp_cmp(FILE *fp, AST_Node *node) {
     switch (node->type) {
-        AST_EQUAL:
+        case AST_EQUAL:
             {
                 AST_Equal *temp = (AST_Equal*) node; 
                 generate_exp(fp, temp->right);
@@ -653,7 +665,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_RELAT:
+        case AST_RELAT:
             {
                 AST_Relat *temp = (AST_Relat*) node; 
                 generate_exp(fp, temp->right);
@@ -673,7 +685,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_ARITH:
+        case AST_ARITH:
             {
                 AST_Arith *temp = (AST_Arith*) node;
                 generate_exp(fp, temp->right);
@@ -685,7 +697,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_UNARY:
+        case AST_UNARY:
             {
                 AST_Unary *temp = (AST_Unary*) node; 
                 generate_exp(fp, temp->expression);
@@ -697,7 +709,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_IDENTIFIER_CONTAINER:
+        case AST_IDENTIFIER_CONTAINER:
             {
                 AST_Identifier_Container *temp = (AST_Identifier_Container*) node; 
                 int type = temp->entry->token_type;
@@ -717,7 +729,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_FUNC_CALL:
+        case AST_FUNC_CALL:
             {
                 AST_Function_Call *temp = (AST_Function_Call*) node;
                 generate_function_call(fp, temp);
@@ -727,7 +739,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
             }
             break;
 
-        AST_CONST:
+        case AST_CONST:
             {
                 AST_Const *temp = (AST_Const*) node;
                 int type = temp->const_type;
@@ -752,6 +764,7 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
         default:
             fail(fp, "codegen.c:generate_exp() unknown type");
     }
+    return CMP_UNDEFINED;
 }
 
 int get_label_num() {

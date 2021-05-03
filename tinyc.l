@@ -1,12 +1,12 @@
 %{
-#include "tinylex.tab.h"
 #include "symtab.h"
 #include "ast.h"
 #include "codegen.h"
+#include "tinylex.tab.h"
 
 #include <math.h>
 
-extern string_label_counter;
+extern int string_label_counter;
 int num_line = 1;
 %}
 
@@ -57,7 +57,7 @@ STRING \"(\\.|[^"\\])*\"
 
 ","                     { return(COMMA); }
 
-{IDENTIFIER}            { append_sym(yytext, UNDEF);
+{IDENTIFIER}            { append_sym(strdup(yytext), UNDEF);
                           yylval.symbol_item = lookup_sym(yytext);
                           return(IDENTIFIER); }
 

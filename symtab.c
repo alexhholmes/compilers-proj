@@ -24,6 +24,7 @@ void append_sym(char *name, int type) {
             new_sym->name = name;
             new_sym->token_type = type;
             new_sym->next = sym_table;
+            sym_table = new_sym;
 
             #ifdef DEBUG
             printf("New symbol: %s, ln %d\n", name, num_line);
@@ -39,18 +40,6 @@ void append_sym(char *name, int type) {
     // Do nothing for symbols that are not newly declared, the AST
     // will use the lookup func to get the symbol by name and then
     // update its value.
-    #ifdef DEBUG
-    Symbol *sym = lookup_sym(name);
-    if (sym != NULL) {
-        RefList *lines = sym->lines;
-        while (lines->next != NULL) lines = lines->next;
-        
-        // Add line number to reference list
-        lines->next = (RefList *) malloc(sizeof(RefList));
-        lines->next->line_num = num_line;
-        lines->next->next = NULL;
-    }
-    #endif
 }
 
 /*
@@ -77,11 +66,6 @@ void print_symtab() {
     Symbol *sym = sym_table;
     while (sym != NULL) {
         printf("%s\t\t%d\t", sym->name, sym->token_type);
-        RefList *lines = sym->lines;
-        while (lines != NULL) {
-            printf("%d\t", lines->line_num);
-            lines = lines->next;
-        }
         printf("\n");
         sym = sym->next;
     }

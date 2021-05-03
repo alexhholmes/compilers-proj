@@ -483,6 +483,14 @@ void ast_print_traversal(AST_Node *node, int indention) {
 
             break;
 
+        case AST_CONST:
+            {
+                AST_Const *temp = (AST_Const*) node;
+
+                ast_indented_println("CONST", indention);
+            }
+            break;
+
         default:
             printf("Unknown AST type!");
             exit(1);
