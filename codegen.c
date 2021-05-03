@@ -58,6 +58,7 @@ Bask in their glory for their words are that of the holy scripture. */
 extern AST_Node *ast_head;
 
 static int label_count = 0;
+static int offset;
 int string_label_counter = 0;
 
 void generate_code() {
@@ -125,7 +126,7 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     AST_Var_Declarations *var_decs = (AST_Var_Declarations*)node->var_declarations;
 
     // Calculate stack pointer offset
-    int offset = 0; 
+    offset = 0; 
     if (params) offset += params->num_params;
     if (var_decs) offset += var_decs->num_vars; 
     offset *= 4; 
@@ -455,6 +456,9 @@ void generate_function_return(FILE *fp, AST_Function_Return* node) {
 
     // Always print at the end of a function or is only thing printed if a void 
     // return type.
+    if (offset != 0) {
+        fprintf(fp, "\taddl\t$%d, "ESP"\n", offset);
+    }
     POP(EBP);
     RET;
 }
