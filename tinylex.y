@@ -278,8 +278,12 @@ st_list: /* epsilon */ { $$ = NULL; }
     {
         // Check not Null
         if ($1) {
-            AST_Statements *temp = (AST_Statements *) $2;
-            $$ = new_ast_statements(temp->statements, temp->num_statements, $1);
+            if ($2) {
+                AST_Statements *temp = (AST_Statements *) $2;
+                $$ = new_ast_statements(temp->statements, temp->num_statements, $1);
+            } else {
+                $$ = new_ast_statements(NULL, 0, $1);
+            }
         }
     }
     ;

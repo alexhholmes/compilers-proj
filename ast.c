@@ -366,7 +366,7 @@ void ast_print_traversal(AST_Node *node, int indention) {
                 ast_indented_println("AST_IF", indention);
                 ast_print_traversal(temp->condition, indention + 1);
                 ast_print_traversal(temp->if_branch, indention + 1);
-                if (temp->else_branch) ast_print_traversal(temp->else_branch, indention + 1);
+                // if (temp->else_branch != NULL) ast_print_traversal(temp->else_branch, indention + 1);
             }
 
             break;

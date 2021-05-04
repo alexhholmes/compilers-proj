@@ -16,7 +16,7 @@
 #define ESP "%%esp"
 #define EIP "%%esp"
 
-#define LABEL(name) fprintf(fp, "%s:\n", name)
+#define LABEL(str, name) fprintf(fp, "%s%d:\n", str, name)
 #define PUSH(reg) fprintf(fp, "\tpushl\t"reg"\n")
 #define POP(reg) fprintf(fp, "\tpopl\t"reg"\n")
 #define NEG(reg) fprintf(fp, "\tnegl\t"reg"\n")
@@ -30,16 +30,14 @@
 #define ASM_DIV(arg1, arg2) fprintf(fp, "\tidivl\t"arg1", "arg2"\n")
 
 #define CMP(arg1, arg2) fprintf(fp, "\tcmpl\t"arg1", "arg2"\n")
-#define JMP(label) fprintf(fp, "\tjmp\t"label"\n")
-#define JE(label) fprintf(fp, "\tje\t"label"\n")
-#define JNE(label) fprintf(fp, "\tjne\t"label"\n")
-#define JG(label) fprintf(fp, "\tjg\t"label"\n")
-#define JGE(label) fprintf(fp, "\tjge\t"label"\n")
-#define JL(label) fprintf(fp, "\tjl\t"label"\n")
-#define JLE(label) fprintf(fp, "\tjle\t"label"\n")
-#define JZ(label) fprintf(fp, "\tjz\t"label"\n")
-
-#define STRINGIFY(x) #x
+#define JMP(label) fprintf(fp, "\tjmp\t.L%d\n", label)
+#define JE(label) fprintf(fp, "\tje\t.L%d\n", label)
+#define JNE(label) fprintf(fp, "\tjne\t.L%d\n", label)
+#define JG(label) fprintf(fp, "\tjg\t.L%d\n", label)
+#define JGE(label) fprintf(fp, "\tjge\t.L%d\n", label)
+#define JL(label) fprintf(fp, "\tjl\t.L%d\n", label)
+#define JLE(label) fprintf(fp, "\tjle\t.L%d\n", label)
+#define JZ(label) fprintf(fp, "\tjz\t.L%d\n", label)
 
 // Comparison types
 #define CMP_EQUAL 0
@@ -116,7 +114,7 @@ void generate_func_deflist(FILE *fp, AST_Function_Declarations *node) {
 void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     // Function label
     char *name = node->entry->name;
-    LABEL(node->entry->name);
+    fprintf(fp, "%s:\n", name);
 
     // Store %ebp and set it to %esp value
     PUSH(EBP);
@@ -155,7 +153,7 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
 }
 
 void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
-    int offset = 4;
+    int offset = 8;
 
     if (node && node->params) {
         // Loop through all function parameters to move from registers to stack
@@ -295,43 +293,44 @@ void generate_if(FILE *fp, AST_If *node) {
     switch (cmp_type) {
         case CMP_EQUAL:
             {
-                JNE(".L"STRINGIFY(else_label));
+                JNE(else_label);
+
             }
             break;
         
         case CMP_NOT_EQUAL:
             {
-                JE(".L"STRINGIFY(else_label));
+                JE(else_label);
             }
             break;
         
         case CMP_GT:
             {
-                JLE(".L"STRINGIFY(else_label));
+                JLE(else_label);
             }
             break;
         
         case CMP_GTE:
             {
-                JL(".L"STRINGIFY(else_label));
+                JL(else_label);
             }
             break;
         
         case CMP_LT:
             {
-                JGE(".L"STRINGIFY(else_label));
+                JGE(else_label);
             }
             break;
         
         case CMP_LTE:
             {
-                JG(".L"STRINGIFY(else_label));
+                JG(else_label);
             }
             break;
         
         case CMP_UNDEFINED:
             {
-                JZ(".L"STRINGIFY(else_label));
+                JZ(else_label);
             }
             break;
     }
@@ -341,7 +340,7 @@ void generate_if(FILE *fp, AST_If *node) {
 
     // If there is no else branch, still need label to jump to outside of if
     // statement.
-    LABEL(".L"STRINGIFY(else_label));
+    LABEL(".L", else_label);
 
     // Generate else branch
     if (else_branch) {
@@ -353,7 +352,7 @@ void generate_while(FILE *fp, AST_While *node) {
     // Print start label
     int start_label = get_label_num();
     int end_label = get_label_num();
-    LABEL(".L"STRINGIFY(start_label));
+    LABEL(".L", start_label);
 
     AST_Node *expression = node->condition;
     AST_Node *statement = node->while_branch;
@@ -362,43 +361,43 @@ void generate_while(FILE *fp, AST_While *node) {
     switch (cmp_type) {
         case CMP_EQUAL:
             {
-                JNE(".L"STRINGIFY(end_label));
+                JNE(end_label);
             }
             break;
         
         case CMP_NOT_EQUAL:
             {
-                JE(".L"STRINGIFY(end_label));
+                JE(end_label);
             }
             break;
         
         case CMP_GT:
             {
-                JLE(".L"STRINGIFY(end_label));
+                JLE(end_label);
             }
             break;
         
         case CMP_GTE:
             {
-                JL(".L"STRINGIFY(end_label));
+                JL(end_label);
             }
             break;
         
         case CMP_LT:
             {
-                JGE(".L"STRINGIFY(end_label));
+                JGE(end_label);
             }
             break;
         
         case CMP_LTE:
             {
-                JG(".L"STRINGIFY(end_label));
+                JG(end_label);
             }
             break;
         
         case CMP_UNDEFINED:
             {
-                JZ(".L"STRINGIFY(end_label));
+                JZ(end_label);
             }
             break;
     }
@@ -406,10 +405,10 @@ void generate_while(FILE *fp, AST_While *node) {
     generate_statement(fp, statement);
 
     // Go to start to check exp
-    JMP(".L"STRINGIFY(start_label));
+    JMP(start_label);
 
     // Print end label
-    LABEL(".L"STRINGIFY(end_label));
+    LABEL(".L", end_label);
 }
 
 void generate_function_return(FILE *fp, AST_Function_Return* node) {
