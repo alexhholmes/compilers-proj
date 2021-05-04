@@ -126,6 +126,7 @@ program: func_deflist
         ast_print_traversal(ast_head, 0);
         print_symtab();
         #endif
+        generate_code();
     }
     ;
 
