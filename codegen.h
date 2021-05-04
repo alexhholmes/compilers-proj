@@ -12,7 +12,7 @@ void generate_string_declarations(FILE *fp);
 void append_string_const(char *string_value);
 void generate_func_deflist(FILE *fp, AST_Function_Declarations *node);
 void generate_func_def(FILE *fp, AST_Function_Declaration *node);
-int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node);
+void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node);
 void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset);
 void generate_statements(FILE *fp, AST_Statements *node);
 void generate_statement(FILE *fp, AST_Node *statement);

@@ -133,7 +133,7 @@ AST_Node *new_ast_while(AST_Node *condition, AST_Node *while_branch) {
     return (struct AST_Node *) node;
 }
 
-AST_Node *new_ast_function_call(Symbol *entry, AST_Node **params, int num_params) {
+AST_Node *new_ast_function_call(Symbol *entry, AST_Node *params, int num_params) {
     AST_Function_Call *node = malloc(sizeof(AST_Function_Call));
 
     node->type = AST_FUNC_CALL;
@@ -295,7 +295,7 @@ void ast_print_traversal(AST_Node *node, int indention) {
                 Param *params = temp->params;
                 for (int i = 0; i < temp->num_params; i++) {
                     Param param = params[i];
-                    printf("%s ", param.param_name);
+                    printf("%s ", param.entry->name);
                 }
                 printf("\n");
             }
@@ -387,6 +387,7 @@ void ast_print_traversal(AST_Node *node, int indention) {
                 AST_Function_Call *temp = (AST_Function_Call*) node;
 
                 ast_indented_print("AST_FUNC_CALL", indention);
+                if (temp->params) ast_print_traversal(temp->params, indention + 1);
             }
 
             break;

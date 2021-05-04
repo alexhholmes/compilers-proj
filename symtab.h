@@ -28,7 +28,7 @@ static struct Symbol *sym_table = NULL;
 
 typedef struct Param {
     int param_type;
-    char *param_name;
+    struct Symbol *entry;
     union param_value {
         int int_val;
         float float_val;
@@ -79,7 +79,7 @@ typedef struct Symbol {
 
 void append_sym(char *name, int type);
 Symbol *lookup_sym(char *name);
-Param def_param(int param_type, char *param_name, int passing);
+Param def_param(int param_type, Symbol *entry, int passing);
 
 #ifdef DEBUG
 void print_symtab();

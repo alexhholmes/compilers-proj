@@ -148,7 +148,7 @@ typedef struct AST_While {
 typedef struct AST_Function_Call {
     NodeType type;
     Symbol *entry;
-    AST_Node **params;
+    AST_Node *params;
     int num_params;
 } AST_Function_Call;
 
@@ -222,7 +222,7 @@ AST_Node *new_ast_const(int const_type, Value val);
 AST_Node *new_ast_assignment(Symbol *entry, AST_Node *assign_value);
 AST_Node *new_ast_if(AST_Node *condition, AST_Node *if_branch, AST_Node *else_branch);
 AST_Node *new_ast_while(AST_Node *condition, AST_Node *while_branch);
-AST_Node *new_ast_function_call(Symbol *entry, AST_Node **params, int num_params);
+AST_Node *new_ast_function_call(Symbol *entry, AST_Node *params, int num_params);
 AST_Node *new_ast_function_call_params(AST_Node **params, int num_params, AST_Node *param);
 AST_Node *new_ast_statements(AST_Node **statements, int num_statements, AST_Node *statement);
 AST_Node *new_ast_var_declarations(AST_Node **var_declarations, int num_vars, AST_Node *var_declaration);

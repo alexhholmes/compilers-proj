@@ -126,7 +126,6 @@ program: func_deflist
         ast_print_traversal(ast_head, 0);
         print_symtab();
         #endif
-        generate_code();
     }
     ;
 
@@ -148,7 +147,8 @@ func_arglist: PTR IDENTIFIER
     {
         $2->passing = BY_REFER;
         AST_Node *temp = new_identifier_container($2);
-        $$ = new_ast_function_call_params(NULL, 0, temp); /* TODO FIX THIS SHIT RELATED TO PARAMS*/
+        
+        $$ = new_ast_function_call_params(NULL, 0, temp);
     }
     | exp
     {
@@ -171,7 +171,7 @@ func_arglist: PTR IDENTIFIER
 func_call: IDENTIFIER LTPAR func_arglist RTPAR
     {
         AST_Function_Call_Params *temp = (AST_Function_Call_Params *) $3;
-        $$ = new_ast_function_call($1, temp->params, temp->num_params);
+        $$ = new_ast_function_call($1, $3, temp->num_params);
     }
     | IDENTIFIER LTPAR RTPAR
     {
@@ -345,7 +345,11 @@ func_st_list: ret_st
         // If NULL, is a ret_st or empty_st. Do not add.
         if ($1) {
             AST_Statements *temp = (AST_Statements *) $2;
-            new_ast_statements(temp->statements, temp->num_statements, $1);
+            if (temp) {
+                $$ = new_ast_statements(temp->statements, temp->num_statements, $1);
+            } else {
+                $$ = new_ast_statements(NULL, 0, $1);
+            }
         }
     }
     ;
@@ -359,7 +363,7 @@ func_body: var_deflist func_st_list
 func_param: { declared = true; } type IDENTIFIER
     { 
         declared = false;
-        $$ = def_param($2, $3->name, 0);
+        $$ = def_param($2, $3, 0);
     }
     ;
 

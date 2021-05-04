@@ -23,6 +23,7 @@ void append_sym(char *name, int type) {
             Symbol *new_sym = (Symbol *) malloc(sizeof(Symbol));
             new_sym->name = name;
             new_sym->token_type = type;
+            new_sym->passing = BY_VALUE;
             new_sym->next = sym_table;
             sym_table = new_sym;
 
@@ -72,10 +73,10 @@ void print_symtab() {
 }
 #endif
 
-Param def_param(int param_type, char *param_name, int passing) {
+Param def_param(int param_type, Symbol *entry, int passing) {
     Param param;
 
-    param.param_name = strdup(param_name);
+    param.entry = entry;
     param.param_type = param_type;
     param.passing = passing;
     

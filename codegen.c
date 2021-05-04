@@ -125,9 +125,13 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     AST_Function_Declaration_Params *params = (AST_Function_Declaration_Params*)node->params;
     AST_Var_Declarations *var_decs = (AST_Var_Declarations*)node->var_declarations;
 
+    // Calculate param offset
+    int param_offset = 1;
+    if (params) param_offset += params->num_params;
+    param_offset *= 4;
+
     // Calculate stack pointer offset
     offset = 0; 
-    if (params) offset += params->num_params;
     if (var_decs) offset += var_decs->num_vars; 
     offset *= 4; 
 
@@ -136,11 +140,9 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
         fprintf(fp, "\tsubl\t$%d, "ESP"\n", offset);
     }
 
-    // Move params and local vars to stack
+    generate_func_params(fp, params);
+
     int curr_var_offset = -4;
-    if (params) {
-        curr_var_offset = generate_func_params(fp, params);
-    }
     generate_var_declarations(fp, var_decs, curr_var_offset);
 
     // Generate statements
@@ -152,28 +154,19 @@ void generate_func_def(FILE *fp, AST_Function_Declaration *node) {
     generate_function_return(fp, return_node);
 }
 
-int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
-    int offset = -4;
+void generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
+    int offset = 4;
 
-    if (node->params) {
+    if (node && node->params) {
         // Loop through all function parameters to move from registers to stack
         for (int i = 0; i < node->num_params; i++) {
-            if (i > 1) {
-                fail(fp, "Lol you thought we'd actually implement this to work with more than 2 params. You wrong.");
-            }
 
             Param param = node->params[i];
             switch (param.param_type) {
                 case INT_TYPE:
                     {
-                        if (i == 0) {
-                            fprintf(fp, "\tmovl\t"EDI", %d("EBP")\n", offset);
-                            offset -= 4;
-                        }
-                        if (i == 1) {
-                            fprintf(fp, "\tmovl\t"ESI", %d("EBP")\n", offset);
-                            offset -= 4;
-                        }
+                        param.entry->offset = offset;
+                        offset += 4;
                     }
                     break;
                 case FLOAT_TYPE:
@@ -183,14 +176,8 @@ int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
                     break;
                 case CHAR_TYPE:
                     {
-                        if (i == 0) {
-                            fprintf(fp, "\tmovl\t"EDI", %d("EBP")\n", offset);
-                            offset -= 4;
-                        }
-                        if (i == 1) {
-                            fprintf(fp, "\tmovl\t"ESI", %d("EBP")\n", offset);
-                            offset -= 4;
-                        }
+                        param.entry->offset = offset;
+                        offset += 4;
                     }
                     break;
                 default:
@@ -198,7 +185,6 @@ int generate_func_params(FILE *fp, AST_Function_Declaration_Params *node) {
             }
         }
     }
-    return offset;
 }
 
 void generate_var_declarations(FILE *fp, AST_Var_Declarations *node, int offset) {
@@ -465,37 +451,28 @@ void generate_function_return(FILE *fp, AST_Function_Return* node) {
 
 void generate_function_call(FILE *fp, AST_Function_Call *node) {
     char *func_name = node->entry->name;
+    int offset = 0;
 
     // Load params into registers
-    for (int i = 0; i < node->num_params; i++) {
-        if (i > 1) {
-            fail(fp, "Lol you thought we'd actually implement this to work with more than 2 function args. You wrong.\n");
-        }
-
-        AST_Node *param = node->params[i];
-        if (param->type == AST_IDENTIFIER_CONTAINER) {
+    for (int i = node->num_params - 1; i >= 0; i--) {
+        AST_Function_Call_Params *params = (AST_Function_Call_Params*) node->params;
+        AST_Node *param = params->params[i];
+        if (param->type == AST_IDENTIFIER_CONTAINER && ((AST_Identifier_Container *) param)->entry->passing == BY_REFER) {
             AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
             
-            // Put address into arg register
-            int offset = identifier->entry->offset;
-            if (i == 0) {
-                fprintf(fp, "\tleal\t%d("EBP"), "EDI"\n", offset);
-            } else {
-                fprintf(fp, "\tleal\t%d("EBP"), "ESI"\n", offset);
-            }
+            int stack_offset = identifier->entry->offset;
+            fprintf(fp, "\tleal\t%d("EBP"), "EDX"\n", stack_offset);
+            PUSH(EDX);
         } else {
-            // Move expression result from %ebx to arg register
             generate_exp(fp, param);
             
-            if (i == 0) {
-                MOV(EBX, EDI);
-            } else {
-                MOV(EBX, ESI);
-            }
+            PUSH(EBX);
         }
+        offset += 4;
     }
 
     CALL(func_name);
+    fprintf(fp, "\taddl\t$%d, "ESP"\n", offset);
 }
 
 void generate_const(FILE *fp, AST_Const *node) {
