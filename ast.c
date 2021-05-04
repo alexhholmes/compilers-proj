@@ -97,6 +97,7 @@ AST_Node *new_ast_const(int const_type, Value val) {
     AST_Const *node = malloc(sizeof(AST_Const));
 
     node->type = AST_CONST;
+    node->const_type = const_type;
     node->val = val;
 
     return (struct AST_Node *) node;

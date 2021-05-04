@@ -20,6 +20,15 @@ void append_sym(char *name, int type) {
         // in the current scope.
         // TODO Have this be done by semantic analyzer so error is handled there?
         if (!lookup_sym(name)) {
+            if (sym_table == NULL) {
+                Symbol *new_sym = (Symbol *) malloc(sizeof(Symbol));
+
+                new_sym->name = "printf";
+                new_sym->token_type = VOID_TYPE;
+                new_sym->next = NULL;
+                sym_table = new_sym;
+            }
+
             Symbol *new_sym = (Symbol *) malloc(sizeof(Symbol));
             new_sym->name = name;
             new_sym->token_type = type;
@@ -28,7 +37,7 @@ void append_sym(char *name, int type) {
             sym_table = new_sym;
 
             #ifdef DEBUG
-            printf("New symbol: %s, ln %d\n", name, num_line);
+            printf("New symbol: %s\n", name);
 
             new_sym->count = 0;
             new_sym->lines = (RefList *) malloc(sizeof(RefList));

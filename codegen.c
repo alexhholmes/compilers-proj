@@ -86,7 +86,7 @@ void generate_string_declarations(FILE *fp) {
     for (int i = 0; i < string_label_counter; i++) {
         char *string_const = string_consts[i];
         fprintf(fp, ".LC%d:\n", string_num);
-        fprintf(fp, "\t.string:\t\"%s\"\n", string_const);
+        fprintf(fp, "\t.string:\t%s\n", string_const);
     }
 }
 
@@ -452,11 +452,19 @@ void generate_function_call(FILE *fp, AST_Function_Call *node) {
     char *func_name = node->entry->name;
     int offset = 0;
 
-    // Load params into registers
+    // Load params onto the stack
     for (int i = node->num_params - 1; i >= 0; i--) {
         AST_Function_Call_Params *params = (AST_Function_Call_Params*) node->params;
         AST_Node *param = params->params[i];
-        if (param->type == AST_IDENTIFIER_CONTAINER && ((AST_Identifier_Container *) param)->entry->passing == BY_REFER) {
+        if (param->type == AST_CONST && ((AST_Const*) param)->const_type == STRING_CONST_TYPE) {
+            AST_Const *constant = (AST_Const*) param;
+
+            int label = constant->val.string_value.asm_label;
+            fprintf(fp, "\tcall\t__x86.get_pc_thunk.ax\n");
+            fprintf(fp, "\taddl\t$_GLOBAL_OFFSET_TABLE_, "EDX"\n");
+            fprintf(fp, "\tleal\t.LC%d@GOTOFF("EDX"), "EDX"\n", label);
+            PUSH(EDX);
+        } else if (param->type == AST_IDENTIFIER_CONTAINER && ((AST_Identifier_Container *) param)->entry->passing == BY_REFER) {
             AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
             
             int stack_offset = identifier->entry->offset;

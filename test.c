@@ -11,5 +11,6 @@ int add(int i) {
 int main(void)
 {
     add(40);
+    printf("please help");
     return 0;
 }

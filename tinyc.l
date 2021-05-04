@@ -71,10 +71,10 @@ STRING \"(\\.|[^"\\])*\"
                           return(FLOAT_CONST); }
 
 {STRING}                { StringValue string_value;
-                          string_value.val = yytext;
+                          string_value.val = strdup(yytext);
                           string_value.asm_label = string_label_counter;
                           yylval.value.string_value = string_value;
-                          append_string_const(yytext);
+                          append_string_const(strdup(yytext));
                           return(STRING_CONST); }
 
 [ \t]                   /* skip whitespace */
