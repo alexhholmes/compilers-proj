@@ -81,12 +81,12 @@ void generate_string_declarations(FILE *fp) {
     fprintf(fp, "\t.text\n");
 
     // String label number
-    int string_num = 1;
+    int string_num = 0;
 
     for (int i = 0; i < string_label_counter; i++) {
         char *string_const = string_consts[i];
         fprintf(fp, ".LC%d:\n", string_num);
-        fprintf(fp, "\t.string:\t%s\n", string_const);
+        fprintf(fp, "\t.string %s\n", string_const);
     }
 }
 
@@ -461,8 +461,8 @@ void generate_function_call(FILE *fp, AST_Function_Call *node) {
 
             int label = constant->val.string_value.asm_label;
             fprintf(fp, "\tcall\t__x86.get_pc_thunk.ax\n");
-            fprintf(fp, "\taddl\t$_GLOBAL_OFFSET_TABLE_, "EDX"\n");
-            fprintf(fp, "\tleal\t.LC%d@GOTOFF("EDX"), "EDX"\n", label);
+            fprintf(fp, "\taddl\t$_GLOBAL_OFFSET_TABLE_, "EAX"\n");
+            fprintf(fp, "\tleal\t.LC%d@GOTOFF("EAX"), "EDX"\n", label);
             PUSH(EDX);
         } else if (param->type == AST_IDENTIFIER_CONTAINER && ((AST_Identifier_Container *) param)->entry->passing == BY_REFER) {
             AST_Identifier_Container *identifier = (AST_Identifier_Container*) param;
@@ -726,14 +726,16 @@ int generate_exp_cmp(FILE *fp, AST_Node *node) {
                 if (type == INT_CONST_TYPE) {
                     int val = temp->val.int_value;
                     fprintf(fp, "\tmovl\t$%d, "EBX"\n", val);
-                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
+                    fprintf(fp, "\tmovl\t$%d, "ECX"\n", 0);
+                    fprintf(fp, "\tcmpl\t"EBX", "ECX"\n");
                     return CMP_UNDEFINED;
                 } else if (type == FLOAT_CONST_TYPE) {
                     // TODO
                 } else if (type == CHAR_CONST_TYPE) {
                     char val = temp->val.char_value;
                     fprintf(fp, "\tmovl\t$%d, "EBX"\n", val);
-                    fprintf(fp, "\tcmpl\t"EBX", $%d)\n", 0);
+                    fprintf(fp, "\tmovl\t$%d, "ECX"\n", 0);
+                    fprintf(fp, "\tcmpl\t"EBX", "ECX"\n");
                     return CMP_UNDEFINED;
                 }
                 return CMP_UNDEFINED;
